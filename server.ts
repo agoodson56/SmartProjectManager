@@ -1,7 +1,6 @@
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { createServer as createViteServer } from "vite";
 import Database from "better-sqlite3";
 import path from "path";
 import bcryptjs from "bcryptjs";
@@ -330,23 +329,18 @@ async function startServer() {
     }
   });
 
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
+  // In production, serve built static files
+  if (process.env.NODE_ENV === "production") {
     app.use(express.static(path.join(process.cwd(), "dist")));
     app.get("*", (req, res) => {
       res.sendFile(path.join(process.cwd(), "dist/index.html"));
     });
   }
 
-  const PORT = 3000;
+  // In dev, Vite runs separately on port 3000 and proxies /api + /socket.io here
+  const PORT = process.env.NODE_ENV === "production" ? 3000 : 3001;
   httpServer.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`API server running on http://localhost:${PORT}`);
   });
 }
 
