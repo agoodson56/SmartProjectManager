@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { io, Socket } from 'socket.io-client';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   LayoutDashboard,
@@ -142,33 +141,12 @@ export default function App() {
     checkSession();
   }, [fetchProjects]);
 
-  // Socket setup (only when in app)
+  // Refresh projects periodically (replaces Socket.IO for Cloudflare)
   useEffect(() => {
     if (authScreen !== 'app' || !authToken) return;
-
-    const socket: Socket = io();
-    socket.on('project:updated', (updatedProject: Project) => {
-      setProjects(prev => {
-        // If user is a manager, only add/update if it's their project
-        if (currentUser && currentUser.role === 'manager' && updatedProject.manager !== currentUser.username) {
-          return prev;
-        }
-        const index = prev.findIndex(p => p.id === updatedProject.id);
-        if (index === -1) return [updatedProject, ...prev];
-        const newProjects = [...prev];
-        newProjects[index] = updatedProject;
-        return newProjects;
-      });
-    });
-
-    socket.on('project:deleted', (deletedId: string) => {
-      setProjects(prev => prev.filter(p => p.id.toString() !== deletedId.toString()));
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [authScreen, authToken, currentUser]);
+    const interval = setInterval(() => fetchProjects(authToken), 30000);
+    return () => clearInterval(interval);
+  }, [authScreen, authToken, fetchProjects]);
 
   // Auto-cycle dashboard pages every 30 seconds
   useEffect(() => {
@@ -304,6 +282,7 @@ export default function App() {
       });
       if (res.ok) {
         setIsCreating(false);
+        fetchProjects(authToken!);
         setName('');
         setManager('Cos');
         setLeadName('');
@@ -379,6 +358,7 @@ export default function App() {
       });
       if (res.ok) {
         setSelectedProject(null);
+        fetchProjects(authToken!);
         setUsedLabor('');
         setUsedMaterial('');
         setUsedOdc('');
@@ -418,6 +398,7 @@ export default function App() {
     try {
       await fetch(`/api/projects/${id}`, { method: 'DELETE', headers: authHeaders() });
       setSelectedProject(null);
+      fetchProjects(authToken!);
     } catch (err) {
       console.error('Failed to delete project', err);
     }
