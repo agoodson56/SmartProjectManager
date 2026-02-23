@@ -1,6 +1,14 @@
 import { Env, getUserFromToken, getToken, jsonResponse } from "../_shared/auth";
 import bcryptjs from "bcryptjs";
 
+// Fix #7: Strong password validation
+function isStrongPassword(password: string): boolean {
+    if (password.length < 8) return false;
+    if (!/[a-zA-Z]/.test(password)) return false;
+    if (!/[0-9]/.test(password)) return false;
+    return true;
+}
+
 export const onRequestPost: PagesFunction<Env> = async (context) => {
     try {
         const token = getToken(context.request);
@@ -10,8 +18,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         }
 
         const { newPassword } = await context.request.json() as { newPassword: string };
-        if (!newPassword || newPassword.length < 4) {
-            return jsonResponse({ error: "Password must be at least 4 characters" }, 400);
+        if (!newPassword || !isStrongPassword(newPassword)) {
+            return jsonResponse({ error: "Password must be at least 8 characters with at least one letter and one number" }, 400);
         }
 
         const hash = bcryptjs.hashSync(newPassword, 10);

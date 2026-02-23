@@ -1,13 +1,17 @@
 import { Env, getUserFromToken, getToken, jsonResponse } from "../_shared/auth";
 
-// GET /api/projects — List projects
+// GET /api/projects — List projects (auth required)
 export const onRequestGet: PagesFunction<Env> = async (context) => {
     try {
         const token = getToken(context.request);
         const user = await getUserFromToken(context.env.DB, token);
+        if (!user) {
+            return jsonResponse({ error: "Not authenticated" }, 401);
+        }
 
         let projects;
-        if (user && user.role === "manager") {
+        if (user.role === "manager") {
+            // Managers only see their own projects
             projects = await context.env.DB.prepare(`
         SELECT * FROM projects 
         WHERE manager = ?
@@ -15,6 +19,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         ORDER BY updated_at DESC
       `).bind(user.username).all();
         } else {
+            // Admin sees all
             projects = await context.env.DB.prepare(`
         SELECT * FROM projects 
         WHERE completed_at IS NULL 
@@ -29,9 +34,18 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 };
 
-// POST /api/projects — Create project
+// POST /api/projects — Create project (auth required, admin only)
 export const onRequestPost: PagesFunction<Env> = async (context) => {
     try {
+        const token = getToken(context.request);
+        const user = await getUserFromToken(context.env.DB, token);
+        if (!user) {
+            return jsonResponse({ error: "Not authenticated" }, 401);
+        }
+        if (user.role !== "admin") {
+            return jsonResponse({ error: "Only admins can create projects" }, 403);
+        }
+
         const { name, manager, lead_name, est_labor_hours, est_material_cost, est_odc, deadline } =
             await context.request.json() as any;
 
@@ -52,6 +66,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         return jsonResponse(newProject);
     } catch (err: any) {
         console.error("POST /api/projects error:", err);
-        return jsonResponse({ error: err.message || "Failed to create project" }, 500);
+        return jsonResponse({ error: "Failed to create project" }, 500);
     }
 };

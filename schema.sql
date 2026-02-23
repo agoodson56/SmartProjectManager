@@ -1,4 +1,6 @@
 -- D1 Schema for SmartProjectManager
+-- NOTE: Run the seed script separately to create users.
+-- Do NOT commit password hashes to version control.
 
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,18 +32,3 @@ CREATE TABLE IF NOT EXISTS projects (
   deadline TEXT,
   updated_at TEXT DEFAULT (datetime('now'))
 );
-
--- Seed users (password: 3DTSI)
-INSERT OR IGNORE INTO users (username, password_hash, role, must_change_password) VALUES
-  ('Allan', '$2b$10$uOSriunHtQvA0L84.tZZfelmtXl.XLMZXJDxmMsxX7V0TnrSBIVSu', 'admin', 1),
-  ('Cos', '$2b$10$uOSriunHtQvA0L84.tZZfelmtXl.XLMZXJDxmMsxX7V0TnrSBIVSu', 'manager', 1),
-  ('Brett', '$2b$10$uOSriunHtQvA0L84.tZZfelmtXl.XLMZXJDxmMsxX7V0TnrSBIVSu', 'manager', 1),
-  ('Kurt', '$2b$10$uOSriunHtQvA0L84.tZZfelmtXl.XLMZXJDxmMsxX7V0TnrSBIVSu', 'manager', 1),
-  ('Richard', '$2b$10$uOSriunHtQvA0L84.tZZfelmtXl.XLMZXJDxmMsxX7V0TnrSBIVSu', 'manager', 1);
-
--- Seed sample projects
-INSERT OR IGNORE INTO projects (name, manager, lead_name, est_labor_hours, est_material_cost) VALUES
-  ('Main Street Plaza', 'Cos', 'John Smith', 1000, 50000),
-  ('Riverside Development', 'Brett', 'Sarah Wilson', 800, 40000),
-  ('Tech Park Phase 1', 'Kurt', 'Mike Ross', 1200, 60000),
-  ('Downtown Renovation', 'Richard', 'Jane Doe', 500, 25000);
