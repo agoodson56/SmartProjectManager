@@ -329,18 +329,15 @@ async function startServer() {
     }
   });
 
-  // In production, serve built static files
-  if (process.env.NODE_ENV === "production") {
-    app.use(express.static(path.join(process.cwd(), "dist")));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(process.cwd(), "dist/index.html"));
-    });
-  }
+  // Always serve built static files from dist/
+  app.use(express.static(path.join(process.cwd(), "dist")));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(process.cwd(), "dist/index.html"));
+  });
 
-  // In dev, Vite runs separately on port 3000 and proxies /api + /socket.io here
-  const PORT = process.env.NODE_ENV === "production" ? 3000 : 3001;
+  const PORT = 3000;
   httpServer.listen(PORT, "0.0.0.0", () => {
-    console.log(`API server running on http://localhost:${PORT}`);
+    console.log(`Server running on http://localhost:${PORT}`);
   });
 }
 
