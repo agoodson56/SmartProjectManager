@@ -1,0 +1,5 @@
+{
+  "name": "SmartProjectManager",
+  "description": "Real-time project management dashboard for wall-mounted monitors, featuring automated budget and completion tracking.",
+  "requestFramePermissions": []
+}

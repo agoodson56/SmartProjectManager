@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+@theme {
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-dashboard-bg: #000000;
+  --color-dashboard-line: #1a1a1a;
+  --color-dashboard-text: #ffffff;
+  --color-dashboard-accent: #00ff00;
+}
+
+@layer base {
+  body {
+    @apply bg-dashboard-bg text-dashboard-text font-mono antialiased;
+  }
+}
+
+.data-grid-row {
+  @apply border-b border-dashboard-line hover:bg-white/5 transition-colors;
+}
+
+.status-under { @apply text-emerald-400; }
+.status-at { @apply text-yellow-400; }
+.status-over { @apply text-red-400; }
+
