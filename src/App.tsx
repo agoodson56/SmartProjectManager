@@ -92,13 +92,10 @@ export default function App() {
   const [manager, setManager] = useState<Manager>('Cos');
   const [leadName, setLeadName] = useState('');
   const [estLabor, setEstLabor] = useState('');
-  const [estMaterial, setEstMaterial] = useState('');
   const [estOdc, setEstOdc] = useState('');
   const [usedLabor, setUsedLabor] = useState('');
-  const [usedMaterial, setUsedMaterial] = useState('');
   const [usedOdc, setUsedOdc] = useState('');
   const [addLabor, setAddLabor] = useState('');
-  const [addMaterial, setAddMaterial] = useState('');
   const [addOdc, setAddOdc] = useState('');
   const [deadline, setDeadline] = useState('');
 
@@ -310,7 +307,7 @@ export default function App() {
           manager,
           lead_name: leadName,
           est_labor_hours: parseFloat(estLabor) || 0,
-          est_material_cost: parseFloat(estMaterial) || 0,
+          est_material_cost: 0,
           est_odc: parseFloat(estOdc) || 0,
           deadline: deadline || null,
         }),
@@ -322,7 +319,6 @@ export default function App() {
         setManager('Cos');
         setLeadName('');
         setEstLabor('');
-        setEstMaterial('');
         setEstOdc('');
         setDeadline('');
       } else {
@@ -357,21 +353,17 @@ export default function App() {
       let payload;
       if (editMode === 'progress') {
         const currentLabor = selectedProject.used_labor_hours;
-        const currentMaterial = selectedProject.used_material_cost;
 
         const laborToAdd = parseFloat(addLabor) || 0;
-        const materialToAdd = parseFloat(addMaterial) || 0;
         const odcToAdd = parseFloat(addOdc) || 0;
 
         // If they used the "New Total" fields, use those. Otherwise, add the incremental values.
         const finalLabor = usedLabor !== currentLabor.toString() ? (parseFloat(usedLabor) || 0) : currentLabor + laborToAdd;
-        const finalMaterial = usedMaterial !== currentMaterial.toString() ? (parseFloat(usedMaterial) || 0) : currentMaterial + materialToAdd;
         const currentOdc = selectedProject.used_odc;
         const finalOdc = usedOdc !== currentOdc.toString() ? (parseFloat(usedOdc) || 0) : currentOdc + odcToAdd;
 
         payload = {
           used_labor_hours: finalLabor,
-          used_material_cost: finalMaterial,
           used_odc: finalOdc,
         };
       } else {
@@ -380,7 +372,6 @@ export default function App() {
           manager,
           lead_name: leadName,
           est_labor_hours: parseFloat(estLabor) || 0,
-          est_material_cost: parseFloat(estMaterial) || 0,
           est_odc: parseFloat(estOdc) || 0,
           deadline: deadline || null,
         };
@@ -395,15 +386,12 @@ export default function App() {
         setSelectedProject(null);
         fetchProjects(authToken!);
         setUsedLabor('');
-        setUsedMaterial('');
         setUsedOdc('');
         setAddLabor('');
-        setAddMaterial('');
         setAddOdc('');
         setName('');
         setLeadName('');
         setEstLabor('');
-        setEstMaterial('');
         setDeadline('');
       } else {
         let errorMessage = 'Failed to update project';
@@ -514,21 +502,19 @@ export default function App() {
   const { stats, totals } = useMemo(() => {
     const computedStats = projects.map(p => {
       const laborProgress = p.est_labor_hours > 0 ? (p.used_labor_hours / p.est_labor_hours) : 0;
-      const materialProgress = p.est_material_cost > 0 ? (p.used_material_cost / p.est_material_cost) : 0;
       const odcProgress = p.est_odc > 0 ? (p.used_odc / p.est_odc) : 0;
 
-      // Completion is weighted average of labor, material, and ODC progress
-      const activeTracks = [laborProgress, materialProgress, odcProgress].filter((_, i) => {
+      // Completion is weighted average of labor and ODC progress
+      const activeTracks = [laborProgress, odcProgress].filter((_, i) => {
         if (i === 0) return p.est_labor_hours > 0;
-        if (i === 1) return p.est_material_cost > 0;
         return p.est_odc > 0;
       });
       const completion = activeTracks.length > 0
         ? Math.min(Math.round((activeTracks.reduce((a, b) => a + b, 0) / activeTracks.length) * 100), 100)
         : 0;
 
-      const totalEst = p.est_labor_hours + p.est_material_cost + p.est_odc;
-      const totalUsed = p.used_labor_hours + p.used_material_cost + p.used_odc;
+      const totalEst = p.est_labor_hours + p.est_odc;
+      const totalUsed = p.used_labor_hours + p.used_odc;
 
       const ratio = totalEst > 0 ? totalUsed / totalEst : 0;
       let status: 'under' | 'on' | 'warning' | 'over' = 'under';
@@ -544,13 +530,11 @@ export default function App() {
     const computedTotals = computedStats.reduce((acc, p) => ({
       estLabor: acc.estLabor + p.est_labor_hours,
       usedLabor: acc.usedLabor + p.used_labor_hours,
-      estMaterial: acc.estMaterial + p.est_material_cost,
-      usedMaterial: acc.usedMaterial + p.used_material_cost,
       estOdc: acc.estOdc + p.est_odc,
       usedOdc: acc.usedOdc + p.used_odc,
       totalEst: acc.totalEst + p.totalEst,
       totalUsed: acc.totalUsed + p.totalUsed,
-    }), { estLabor: 0, usedLabor: 0, estMaterial: 0, usedMaterial: 0, estOdc: 0, usedOdc: 0, totalEst: 0, totalUsed: 0 });
+    }), { estLabor: 0, usedLabor: 0, estOdc: 0, usedOdc: 0, totalEst: 0, totalUsed: 0 });
 
     return { stats: computedStats, totals: computedTotals };
   }, [projects]);
@@ -831,21 +815,7 @@ export default function App() {
                     <div className="h-full bg-dashboard-accent" style={{ width: `${Math.min((totals.usedLabor / (totals.estLabor || 1)) * 100, 100)}%` }} />
                   </div>
                 </div>
-                <div className="bg-white/5 border border-dashboard-line p-5 rounded-xl">
-                  <div className="text-sm font-bold uppercase tracking-widest mb-2">Total Material Cost</div>
-                  <div className="text-3xl font-bold tracking-tighter">
-                    ${totals.usedMaterial.toLocaleString()} <span className="text-lg opacity-50">/ ${totals.estMaterial.toLocaleString()}</span>
-                  </div>
-                  <div className={cn(
-                    "text-base font-bold mt-2",
-                    (totals.estMaterial - totals.usedMaterial) < 0 ? "text-red-400" : "text-emerald-400"
-                  )}>
-                    ${(totals.estMaterial - totals.usedMaterial).toLocaleString()} remaining
-                  </div>
-                  <div className="w-full h-2 bg-white/10 rounded-full mt-3 overflow-hidden">
-                    <div className="h-full bg-dashboard-accent" style={{ width: `${Math.min((totals.usedMaterial / (totals.estMaterial || 1)) * 100, 100)}%` }} />
-                  </div>
-                </div>
+
                 <div className="bg-white/5 border border-dashboard-line p-5 rounded-xl">
                   <div className="text-sm font-bold uppercase tracking-widest mb-2">Total Other Direct Cost</div>
                   <div className="text-3xl font-bold tracking-tighter">
@@ -940,14 +910,11 @@ export default function App() {
               {/* Dashboard Grid */}
               <div className="grid grid-cols-1 gap-1 border border-dashboard-accent/40 rounded-lg overflow-hidden bg-dashboard-accent/30">
                 {/* Header Row */}
-                <div className="grid grid-cols-[2.5fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_0.8fr_0.5fr] gap-3 px-6 py-4 bg-dashboard-bg text-sm font-bold uppercase tracking-widest">
+                <div className="grid grid-cols-[2.5fr_1fr_1fr_1fr_1fr_1fr_1fr_0.8fr_0.5fr] gap-3 px-6 py-4 bg-dashboard-bg text-sm font-bold uppercase tracking-widest">
                   <div>Project</div>
                   <div className="text-center">Labor Est</div>
                   <div className="text-center">Labor Used</div>
                   <div className="text-center">Labor Rem</div>
-                  <div className="text-center">Material Est</div>
-                  <div className="text-center">Material Used</div>
-                  <div className="text-center">Material Rem</div>
                   <div className="text-center">Other Direct Cost Est</div>
                   <div className="text-center">Other Direct Cost Used</div>
                   <div className="text-center">Other Direct Cost Rem</div>
@@ -957,13 +924,12 @@ export default function App() {
 
                 {stats.slice(dashboardPage * projectsPerPage, (dashboardPage + 1) * projectsPerPage).map((project) => {
                   const laborRemaining = project.est_labor_hours - project.used_labor_hours;
-                  const materialRemaining = project.est_material_cost - project.used_material_cost;
 
                   return (
                     <motion.div
                       layout
                       key={project.id}
-                      className="grid grid-cols-[2.5fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_0.8fr_0.5fr] gap-3 px-6 py-5 bg-dashboard-bg items-center group hover:bg-white/5 transition-colors"
+                      className="grid grid-cols-[2.5fr_1fr_1fr_1fr_1fr_1fr_1fr_0.8fr_0.5fr] gap-3 px-6 py-5 bg-dashboard-bg items-center group hover:bg-white/5 transition-colors"
                     >
                       {/* Project Info */}
                       <div>
@@ -1037,28 +1003,7 @@ export default function App() {
                         <div className="text-xs uppercase tracking-widest opacity-50">hours</div>
                       </div>
 
-                      {/* Material Estimated */}
-                      <div className="text-center">
-                        <div className="text-lg font-bold tracking-tight">${project.est_material_cost.toLocaleString()}</div>
-                        <div className="text-xs uppercase tracking-widest opacity-50">budget</div>
-                      </div>
 
-                      {/* Material Used/Installed */}
-                      <div className="text-center">
-                        <div className="text-lg font-bold tracking-tight text-amber-400">${project.used_material_cost.toLocaleString()}</div>
-                        <div className="text-xs uppercase tracking-widest opacity-50">installed</div>
-                      </div>
-
-                      {/* Material Remaining */}
-                      <div className="text-center">
-                        <div className={cn(
-                          "text-lg font-bold tracking-tight",
-                          materialRemaining < 0 ? "text-red-400" : "text-emerald-400"
-                        )}>
-                          ${materialRemaining.toLocaleString()}
-                        </div>
-                        <div className="text-xs uppercase tracking-widest opacity-50">remaining</div>
-                      </div>
 
                       {/* Other Direct Cost Estimated */}
                       <div className="text-center">
@@ -1102,16 +1047,13 @@ export default function App() {
                             setView('input');
                             setSelectedProject(project);
                             setUsedLabor(project.used_labor_hours.toString());
-                            setUsedMaterial(project.used_material_cost.toString());
                             setUsedOdc(project.used_odc.toString());
                             setAddLabor('');
-                            setAddMaterial('');
                             setAddOdc('');
                             setName(project.name);
                             setManager(project.manager as Manager);
                             setLeadName(project.lead_name || '');
                             setEstLabor(project.est_labor_hours.toString());
-                            setEstMaterial(project.est_material_cost.toString());
                             setEstOdc(project.est_odc.toString());
                             setDeadline(project.deadline ? project.deadline.split('T')[0] : '');
                             setEditMode('progress');
@@ -1261,17 +1203,7 @@ export default function App() {
                             required
                           />
                         </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold uppercase tracking-widest">Est. Material Cost ($)</label>
-                          <input
-                            type="number"
-                            value={estMaterial}
-                            onChange={(e) => setEstMaterial(e.target.value)}
-                            className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 focus:border-dashboard-accent outline-none transition-colors"
-                            placeholder="0.00"
-                            required
-                          />
-                        </div>
+
                       </div>
 
                       <div className="space-y-2">
@@ -1315,13 +1247,11 @@ export default function App() {
                         onClick={() => {
                           setSelectedProject(p);
                           setUsedLabor(p.used_labor_hours.toString());
-                          setUsedMaterial(p.used_material_cost.toString());
                           setUsedOdc(p.used_odc.toString());
                           setName(p.name);
                           setManager(p.manager as Manager);
                           setLeadName(p.lead_name || '');
                           setEstLabor(p.est_labor_hours.toString());
-                          setEstMaterial(p.est_material_cost.toString());
                           setEstOdc(p.est_odc.toString());
                           setDeadline(p.deadline ? p.deadline.split('T')[0] : '');
                           setEditMode('progress');
@@ -1418,32 +1348,7 @@ export default function App() {
                             </div>
                           </div>
 
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <label className="text-[10px] font-bold uppercase tracking-widest">Add Material Cost ($)</label>
-                              <div className="relative">
-                                <PlusCircle className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-dashboard-accent" />
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  value={addMaterial}
-                                  onChange={(e) => setAddMaterial(e.target.value)}
-                                  className="w-full bg-dashboard-accent/10 border border-dashboard-accent/30 rounded-xl py-4 pl-12 pr-4 focus:border-dashboard-accent outline-none transition-colors text-lg font-bold"
-                                  placeholder="+$0.00"
-                                />
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <label className="text-[10px] font-bold uppercase tracking-widest">Current Total Cost</label>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={usedMaterial}
-                                onChange={(e) => setUsedMaterial(e.target.value)}
-                                className="w-full bg-black/20 border border-white/20 rounded-xl py-2 px-4 focus:border-dashboard-accent outline-none transition-colors text-sm"
-                              />
-                            </div>
-                          </div>
+
                         </div>
 
                         <div className="space-y-4">
@@ -1474,10 +1379,10 @@ export default function App() {
                         </div>
                         <div className="p-4 bg-white/5 rounded-xl border border-white/20 flex justify-between items-center">
                           <div className="text-xs">
-                            Estimates: <span className="font-bold text-white">{selectedProject.est_labor_hours}h</span> / <span className="font-bold text-white">${selectedProject.est_material_cost.toLocaleString()}</span> / <span className="font-bold text-white">${selectedProject.est_odc.toLocaleString()} Other Direct Cost</span>
+                            Estimates: <span className="font-bold text-white">{selectedProject.est_labor_hours}h Labor</span> / <span className="font-bold text-white">${selectedProject.est_odc.toLocaleString()} Other Direct Cost</span>
                           </div>
                           <div className="text-xs">
-                            Current: <span className="font-bold text-white">{selectedProject.used_labor_hours}h</span> / <span className="font-bold text-white">${selectedProject.used_material_cost.toLocaleString()}</span> / <span className="font-bold text-white">${selectedProject.used_odc.toLocaleString()} Other Direct Cost</span>
+                            Current: <span className="font-bold text-white">{selectedProject.used_labor_hours}h Labor</span> / <span className="font-bold text-white">${selectedProject.used_odc.toLocaleString()} Other Direct Cost</span>
                           </div>
                         </div>
                       </div>
@@ -1809,17 +1714,7 @@ export default function App() {
                             />
                           </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-4">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest">Est. Material Cost ($)</label>
-                            <input
-                              type="number"
-                              value={estMaterial}
-                              onChange={(e) => setEstMaterial(e.target.value)}
-                              className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 focus:border-dashboard-accent outline-none transition-colors"
-                              required
-                            />
-                          </div>
+                        <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <label className="text-[10px] font-bold uppercase tracking-widest">Est. Other Direct Cost ($)</label>
                             <input
