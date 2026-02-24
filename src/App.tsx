@@ -1577,16 +1577,17 @@ export default function App() {
                               type="number"
                               value={matLaborPerUnit}
                               onChange={(e) => setMatLaborPerUnit(e.target.value)}
-                              placeholder="Labor hrs/unit"
+                              placeholder="Labor hrs/unit (required)"
                               className="bg-black/40 border border-white/20 rounded-xl py-2.5 px-4 focus:border-dashboard-accent outline-none transition-colors text-sm"
-                              min="0"
+                              min="0.1"
                               step="0.1"
+                              required
                             />
                           </div>
                           <button
                             type="button"
                             onClick={handleAddMaterial}
-                            disabled={!matName || !matQty}
+                            disabled={!matName || !matQty || !matLaborPerUnit}
                             className="w-full bg-dashboard-accent text-black font-bold py-2.5 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30 text-xs uppercase tracking-wider flex items-center justify-center gap-2"
                           >
                             <PlusCircle size={14} />
