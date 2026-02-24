@@ -12,6 +12,17 @@ export interface Project {
   completed_at: string | null;
   deadline: string | null;
   updated_at: string;
+  materials?: Material[];
+}
+
+export interface Material {
+  id: number;
+  project_id: number;
+  name: string;
+  quantity: number;
+  labor_hours_per_unit: number;
+  quantity_used: number;
+  created_at: string;
 }
 
 export interface User {

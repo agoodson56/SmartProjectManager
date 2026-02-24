@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { Material } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   LayoutDashboard,
@@ -9,6 +10,8 @@ import {
   TrendingDown,
   TrendingUp,
   Minus,
+  Trash2,
+  Boxes,
   ChevronRight,
   Settings2,
   Monitor,
@@ -40,8 +43,15 @@ export default function App() {
   const [view, setView] = useState<'dashboard' | 'input'>('dashboard');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [editMode, setEditMode] = useState<'progress' | 'details'>('progress');
+  const [editMode, setEditMode] = useState<'progress' | 'details' | 'materials'>('progress');
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Material state
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [matName, setMatName] = useState('');
+  const [matQty, setMatQty] = useState('');
+  const [matLaborPerUnit, setMatLaborPerUnit] = useState('');
+  const [loadingMaterials, setLoadingMaterials] = useState(false);
 
   // Dashboard auto-cycle — dynamic scaling & projects per page
   const [projectsPerPage, setProjectsPerPage] = useState(6);
@@ -103,6 +113,24 @@ export default function App() {
       }
     } catch (err) {
       console.error('Failed to fetch projects', err);
+    }
+  }, []);
+
+  // Fetch materials for a project
+  const fetchMaterials = useCallback(async (projectId: number, token: string) => {
+    setLoadingMaterials(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/materials`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMaterials(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch materials', err);
+    } finally {
+      setLoadingMaterials(false);
     }
   }, []);
 
@@ -403,6 +431,71 @@ export default function App() {
       console.error('Failed to delete project', err);
     }
   };
+
+  // --- Material CRUD ---
+  const handleAddMaterial = async () => {
+    if (!selectedProject || !matName || !matQty) return;
+    try {
+      const res = await fetch(`/api/projects/${selectedProject.id}/materials`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          name: matName,
+          quantity: parseFloat(matQty) || 0,
+          labor_hours_per_unit: parseFloat(matLaborPerUnit) || 0,
+        }),
+      });
+      if (res.ok) {
+        setMatName('');
+        setMatQty('');
+        setMatLaborPerUnit('');
+        fetchMaterials(selectedProject.id, authToken!);
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to add material');
+      }
+    } catch (err) {
+      console.error('Failed to add material', err);
+    }
+  };
+
+  const handleUpdateMaterialQty = async (materialId: number, newQtyUsed: number) => {
+    if (!selectedProject) return;
+    try {
+      const res = await fetch(`/api/projects/${selectedProject.id}/materials/${materialId}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ quantity_used: Math.max(0, newQtyUsed) }),
+      });
+      if (res.ok) {
+        fetchMaterials(selectedProject.id, authToken!);
+      }
+    } catch (err) {
+      console.error('Failed to update material', err);
+    }
+  };
+
+  const handleDeleteMaterial = async (materialId: number) => {
+    if (!selectedProject || !confirm('Remove this material?')) return;
+    try {
+      await fetch(`/api/projects/${selectedProject.id}/materials/${materialId}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      fetchMaterials(selectedProject.id, authToken!);
+    } catch (err) {
+      console.error('Failed to delete material', err);
+    }
+  };
+
+  // Material totals for the selected project
+  const materialTotals = useMemo(() => {
+    const totalQty = materials.reduce((s, m) => s + m.quantity, 0);
+    const totalUsed = materials.reduce((s, m) => s + m.quantity_used, 0);
+    const totalLaborEst = materials.reduce((s, m) => s + (m.quantity * m.labor_hours_per_unit), 0);
+    const totalLaborUsed = materials.reduce((s, m) => s + (m.quantity_used * m.labor_hours_per_unit), 0);
+    return { totalQty, totalUsed, totalRemaining: totalQty - totalUsed, totalLaborEst, totalLaborUsed };
+  }, [materials]);
 
   const { stats, totals } = useMemo(() => {
     const computedStats = projects.map(p => {
@@ -1008,6 +1101,7 @@ export default function App() {
                             setEstOdc(project.est_odc.toString());
                             setDeadline(project.deadline ? project.deadline.split('T')[0] : '');
                             setEditMode('progress');
+                            fetchMaterials(project.id, authToken!);
                           }}
                           className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-dashboard-accent hover:text-black transition-all"
                         >
@@ -1217,6 +1311,7 @@ export default function App() {
                           setEstOdc(p.est_odc.toString());
                           setDeadline(p.deadline ? p.deadline.split('T')[0] : '');
                           setEditMode('progress');
+                          fetchMaterials(p.id, authToken!);
                         }}
                         className="w-full flex items-center justify-between p-4 rounded-xl border border-white/20 hover:border-dashboard-accent hover:bg-white/5 transition-all group"
                       >
@@ -1255,6 +1350,17 @@ export default function App() {
                         )}
                       >
                         Update Progress
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditMode('materials')}
+                        className={cn(
+                          "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all flex items-center justify-center gap-1.5",
+                          editMode === 'materials' ? "bg-white/20 text-white" : "text-white/60 hover:text-white"
+                        )}
+                      >
+                        <Boxes size={12} />
+                        Materials
                       </button>
                       <button
                         type="button"
@@ -1359,6 +1465,133 @@ export default function App() {
                           <div className="text-xs">
                             Current: <span className="font-bold text-white">{selectedProject.used_labor_hours}h</span> / <span className="font-bold text-white">${selectedProject.used_material_cost.toLocaleString()}</span> / <span className="font-bold text-white">${selectedProject.used_odc.toLocaleString()} Other Direct Cost</span>
                           </div>
+                        </div>
+                      </div>
+                    ) : editMode === 'materials' ? (
+                      <div className="space-y-6">
+                        {/* Material Summary Bar */}
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+                            <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-1">Total Materials</div>
+                            <div className="text-lg font-bold">{materialTotals.totalUsed.toLocaleString()} <span className="text-sm opacity-50">/ {materialTotals.totalQty.toLocaleString()}</span></div>
+                            <div className={cn("text-xs font-bold", materialTotals.totalRemaining < 0 ? "text-red-400" : "text-emerald-400")}>
+                              {materialTotals.totalRemaining.toLocaleString()} remaining
+                            </div>
+                          </div>
+                          <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+                            <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-1">Est. Labor (Materials)</div>
+                            <div className="text-lg font-bold">{materialTotals.totalLaborEst.toLocaleString()} <span className="text-sm opacity-50">hrs</span></div>
+                          </div>
+                          <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+                            <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-1">Labor Used (installed)</div>
+                            <div className="text-lg font-bold text-amber-400">{materialTotals.totalLaborUsed.toLocaleString()} <span className="text-sm opacity-50">hrs</span></div>
+                            <div className={cn("text-xs font-bold", (materialTotals.totalLaborEst - materialTotals.totalLaborUsed) < 0 ? "text-red-400" : "text-emerald-400")}>
+                              {(materialTotals.totalLaborEst - materialTotals.totalLaborUsed).toLocaleString()} remaining
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Material List */}
+                        {loadingMaterials ? (
+                          <div className="text-center py-8 opacity-50">Loading materials...</div>
+                        ) : materials.length === 0 ? (
+                          <div className="text-center py-8 opacity-50 text-sm">No materials added yet. Add your first material below.</div>
+                        ) : (
+                          <div className="space-y-2">
+                            {/* Table Header */}
+                            <div className="grid grid-cols-[2fr_0.8fr_0.8fr_0.8fr_1fr_0.5fr] gap-2 px-3 py-2 text-[9px] font-bold uppercase tracking-widest opacity-60">
+                              <div>Material</div>
+                              <div className="text-center">Qty Needed</div>
+                              <div className="text-center">Installed</div>
+                              <div className="text-center">Remaining</div>
+                              <div className="text-center">Labor Generated</div>
+                              <div></div>
+                            </div>
+                            {materials.map(mat => {
+                              const remaining = mat.quantity - mat.quantity_used;
+                              const laborUsed = mat.quantity_used * mat.labor_hours_per_unit;
+                              const progress = mat.quantity > 0 ? (mat.quantity_used / mat.quantity) * 100 : 0;
+                              return (
+                                <div key={mat.id} className="grid grid-cols-[2fr_0.8fr_0.8fr_0.8fr_1fr_0.5fr] gap-2 items-center bg-white/5 border border-white/10 rounded-xl px-3 py-3">
+                                  <div>
+                                    <div className="font-bold text-sm">{mat.name}</div>
+                                    <div className="text-[10px] opacity-50">{mat.labor_hours_per_unit}h per unit</div>
+                                    <div className="w-full h-1.5 bg-white/10 rounded-full mt-1.5 overflow-hidden">
+                                      <div className={cn("h-full rounded-full", progress > 100 ? "bg-red-500" : "bg-dashboard-accent")} style={{ width: `${Math.min(progress, 100)}%` }} />
+                                    </div>
+                                  </div>
+                                  <div className="text-center font-bold">{mat.quantity.toLocaleString()}</div>
+                                  <div className="text-center">
+                                    <input
+                                      type="number"
+                                      value={mat.quantity_used}
+                                      onChange={(e) => handleUpdateMaterialQty(mat.id, parseFloat(e.target.value) || 0)}
+                                      className="w-full bg-black/40 border border-white/20 rounded-lg py-1 px-2 text-center text-sm font-bold focus:border-dashboard-accent outline-none"
+                                      step="1"
+                                      min="0"
+                                    />
+                                  </div>
+                                  <div className={cn("text-center font-bold", remaining < 0 ? "text-red-400" : "text-emerald-400")}>
+                                    {remaining.toLocaleString()}
+                                  </div>
+                                  <div className="text-center text-sm">
+                                    <span className="font-bold text-amber-400">{laborUsed.toLocaleString()}h</span>
+                                    <span className="opacity-50"> / {(mat.quantity * mat.labor_hours_per_unit).toLocaleString()}h</span>
+                                  </div>
+                                  <div className="text-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteMaterial(mat.id)}
+                                      className="p-1.5 rounded-lg hover:bg-red-500/20 hover:text-red-400 transition-all opacity-40 hover:opacity-100"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Add Material Form */}
+                        <div className="bg-dashboard-accent/5 border border-dashboard-accent/20 rounded-xl p-4 space-y-3">
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-dashboard-accent">Add Material</div>
+                          <div className="grid grid-cols-[2fr_1fr_1fr] gap-3">
+                            <input
+                              type="text"
+                              value={matName}
+                              onChange={(e) => setMatName(e.target.value)}
+                              placeholder="Material name (e.g. Cat6 Cable)"
+                              className="bg-black/40 border border-white/20 rounded-xl py-2.5 px-4 focus:border-dashboard-accent outline-none transition-colors text-sm"
+                            />
+                            <input
+                              type="number"
+                              value={matQty}
+                              onChange={(e) => setMatQty(e.target.value)}
+                              placeholder="Quantity"
+                              className="bg-black/40 border border-white/20 rounded-xl py-2.5 px-4 focus:border-dashboard-accent outline-none transition-colors text-sm"
+                              min="1"
+                              step="1"
+                            />
+                            <input
+                              type="number"
+                              value={matLaborPerUnit}
+                              onChange={(e) => setMatLaborPerUnit(e.target.value)}
+                              placeholder="Labor hrs/unit"
+                              className="bg-black/40 border border-white/20 rounded-xl py-2.5 px-4 focus:border-dashboard-accent outline-none transition-colors text-sm"
+                              min="0"
+                              step="0.1"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleAddMaterial}
+                            disabled={!matName || !matQty}
+                            className="w-full bg-dashboard-accent text-black font-bold py-2.5 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30 text-xs uppercase tracking-wider flex items-center justify-center gap-2"
+                          >
+                            <PlusCircle size={14} />
+                            Add Material
+                          </button>
                         </div>
                       </div>
                     ) : (
