@@ -18,6 +18,8 @@ import {
   CheckCircle2,
   Calendar,
   Download,
+  Upload,
+  FileSpreadsheet,
   LogOut,
   Lock,
   KeyRound
@@ -52,6 +54,8 @@ export default function App() {
   const [matQty, setMatQty] = useState('');
   const [matLaborPerUnit, setMatLaborPerUnit] = useState('');
   const [loadingMaterials, setLoadingMaterials] = useState(false);
+  const [csvPreview, setCsvPreview] = useState<{ name: string; quantity: number; labor_hours_per_unit: number }[]>([]);
+  const [csvUploading, setCsvUploading] = useState(false);
 
   // Dashboard auto-cycle — dynamic scaling & projects per page
   const [projectsPerPage, setProjectsPerPage] = useState(6);
@@ -1552,6 +1556,114 @@ export default function App() {
                             })}
                           </div>
                         )}
+
+                        {/* Upload CSV */}
+                        <div className="bg-white/5 border border-dashed border-white/20 rounded-xl p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                              <FileSpreadsheet size={12} className="text-dashboard-accent" />
+                              Import from CSV
+                            </div>
+                            <span className="text-[9px] opacity-40">Columns: Material, Quantity, Labor Hrs/Unit</span>
+                          </div>
+                          {csvPreview.length > 0 ? (
+                            <div className="space-y-2">
+                              <div className="text-xs font-bold text-dashboard-accent">{csvPreview.length} materials ready to import:</div>
+                              <div className="max-h-40 overflow-y-auto space-y-1">
+                                {csvPreview.map((row, i) => (
+                                  <div key={i} className="grid grid-cols-3 gap-2 text-xs bg-black/20 rounded-lg px-3 py-1.5">
+                                    <span className="font-bold truncate">{row.name}</span>
+                                    <span className="text-center">Qty: {row.quantity}</span>
+                                    <span className="text-center">{row.labor_hours_per_unit} hrs/unit</span>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setCsvPreview([])}
+                                  className="flex-1 py-2 bg-white/5 border border-white/20 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition-all"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={csvUploading}
+                                  onClick={async () => {
+                                    if (!selectedProject) return;
+                                    setCsvUploading(true);
+                                    try {
+                                      for (const row of csvPreview) {
+                                        await fetch(`/api/projects/${selectedProject.id}/materials`, {
+                                          method: 'POST',
+                                          headers: authHeaders(),
+                                          body: JSON.stringify(row),
+                                        });
+                                      }
+                                      setCsvPreview([]);
+                                      fetchMaterials(selectedProject.id, authToken!);
+                                    } catch (err) {
+                                      console.error('CSV import failed', err);
+                                      alert('Some materials failed to import.');
+                                    } finally {
+                                      setCsvUploading(false);
+                                    }
+                                  }}
+                                  className="flex-1 py-2 bg-dashboard-accent text-black font-bold rounded-xl text-xs uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                  {csvUploading ? 'Importing...' : `Import ${csvPreview.length} Materials`}
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <label className="flex flex-col items-center gap-2 py-4 cursor-pointer hover:bg-white/5 rounded-xl transition-colors">
+                              <Upload size={20} className="text-dashboard-accent opacity-60" />
+                              <span className="text-xs opacity-60">Click to upload CSV file</span>
+                              <input
+                                type="file"
+                                accept=".csv,.txt"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  const reader = new FileReader();
+                                  reader.onload = (evt) => {
+                                    const text = evt.target?.result as string;
+                                    if (!text) return;
+                                    const lines = text.split(/\r?\n/).filter(l => l.trim());
+                                    if (lines.length < 2) { alert('CSV must have a header row and at least one data row.'); return; }
+                                    // Parse header to find column indices
+                                    const header = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z]/g, ''));
+                                    const nameIdx = header.findIndex(h => h.includes('material') || h.includes('name') || h.includes('item') || h.includes('description'));
+                                    const qtyIdx = header.findIndex(h => h.includes('qty') || h.includes('quantity') || h.includes('count'));
+                                    const laborIdx = header.findIndex(h => h.includes('labor') || h.includes('hour') || h.includes('hrs') || h.includes('time'));
+                                    if (nameIdx === -1 || laborIdx === -1) {
+                                      alert('CSV must have columns for Material (name/item/description) and Labor (hours/hrs/time). Quantity column is optional (defaults to 1).');
+                                      return;
+                                    }
+                                    const parsed: { name: string; quantity: number; labor_hours_per_unit: number }[] = [];
+                                    for (let i = 1; i < lines.length; i++) {
+                                      const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+                                      const name = cols[nameIdx];
+                                      const qty = qtyIdx !== -1 ? (parseFloat(cols[qtyIdx]) || 1) : 1;
+                                      const labor = parseFloat(cols[laborIdx]) || 0;
+                                      if (name && labor > 0) {
+                                        parsed.push({ name, quantity: qty, labor_hours_per_unit: labor });
+                                      }
+                                    }
+                                    if (parsed.length === 0) {
+                                      alert('No valid rows found. Each row needs a material name and labor hours > 0.');
+                                      return;
+                                    }
+                                    setCsvPreview(parsed);
+                                  };
+                                  reader.readAsText(file);
+                                  e.target.value = '';
+                                }}
+                              />
+                            </label>
+                          )}
+                        </div>
 
                         {/* Add Material Form */}
                         <div className="bg-dashboard-accent/5 border border-dashboard-accent/20 rounded-xl p-4 space-y-3">
