@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS materials (
   quantity REAL NOT NULL DEFAULT 0,
   labor_hours_per_unit REAL NOT NULL DEFAULT 0,
   quantity_used REAL NOT NULL DEFAULT 0,
+  actual_labor_hours REAL NOT NULL DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now')),
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );

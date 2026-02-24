@@ -22,6 +22,7 @@ export interface Material {
   quantity: number;
   labor_hours_per_unit: number;
   quantity_used: number;
+  actual_labor_hours: number;
   created_at: string;
 }
 

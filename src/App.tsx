@@ -56,6 +56,9 @@ export default function App() {
   const [loadingMaterials, setLoadingMaterials] = useState(false);
   const [csvPreview, setCsvPreview] = useState<{ name: string; quantity: number; labor_hours_per_unit: number }[]>([]);
   const [csvUploading, setCsvUploading] = useState(false);
+  const [logMaterialId, setLogMaterialId] = useState<number | null>(null);
+  const [logQty, setLogQty] = useState('');
+  const [logHours, setLogHours] = useState('');
 
   // Dashboard auto-cycle — dynamic scaling & projects per page
   const [projectsPerPage, setProjectsPerPage] = useState(6);
@@ -463,19 +466,26 @@ export default function App() {
     }
   };
 
-  const handleUpdateMaterialQty = async (materialId: number, newQtyUsed: number) => {
+  const handleLogInstall = async (materialId: number) => {
     if (!selectedProject) return;
+    const addQty = parseFloat(logQty) || 0;
+    const addHours = parseFloat(logHours) || 0;
+    if (addQty <= 0 && addHours <= 0) return;
     try {
       const res = await fetch(`/api/projects/${selectedProject.id}/materials/${materialId}`, {
         method: 'PUT',
         headers: authHeaders(),
-        body: JSON.stringify({ quantity_used: Math.max(0, newQtyUsed) }),
+        body: JSON.stringify({ add_qty: addQty, add_hours: addHours }),
       });
       if (res.ok) {
+        setLogMaterialId(null);
+        setLogQty('');
+        setLogHours('');
         fetchMaterials(selectedProject.id, authToken!);
+        fetchProjects(authToken!);
       }
     } catch (err) {
-      console.error('Failed to update material', err);
+      console.error('Failed to log install', err);
     }
   };
 
@@ -497,8 +507,8 @@ export default function App() {
     const totalQty = materials.reduce((s, m) => s + m.quantity, 0);
     const totalUsed = materials.reduce((s, m) => s + m.quantity_used, 0);
     const totalLaborEst = materials.reduce((s, m) => s + (m.quantity * m.labor_hours_per_unit), 0);
-    const totalLaborUsed = materials.reduce((s, m) => s + (m.quantity_used * m.labor_hours_per_unit), 0);
-    return { totalQty, totalUsed, totalRemaining: totalQty - totalUsed, totalLaborEst, totalLaborUsed };
+    const totalActualHours = materials.reduce((s, m) => s + (m.actual_labor_hours || 0), 0);
+    return { totalQty, totalUsed, totalRemaining: totalQty - totalUsed, totalLaborEst, totalActualHours };
   }, [materials]);
 
   const { stats, totals } = useMemo(() => {
@@ -1487,10 +1497,10 @@ export default function App() {
                             <div className="text-lg font-bold">{materialTotals.totalLaborEst.toLocaleString()} <span className="text-sm opacity-50">hrs</span></div>
                           </div>
                           <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
-                            <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-1">Labor Used (installed)</div>
-                            <div className="text-lg font-bold text-amber-400">{materialTotals.totalLaborUsed.toLocaleString()} <span className="text-sm opacity-50">hrs</span></div>
-                            <div className={cn("text-xs font-bold", (materialTotals.totalLaborEst - materialTotals.totalLaborUsed) < 0 ? "text-red-400" : "text-emerald-400")}>
-                              {(materialTotals.totalLaborEst - materialTotals.totalLaborUsed).toLocaleString()} remaining
+                            <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-1">Actual Hours Worked</div>
+                            <div className="text-lg font-bold text-amber-400">{materialTotals.totalActualHours.toLocaleString()} <span className="text-sm opacity-50">hrs</span></div>
+                            <div className={cn("text-xs font-bold", (materialTotals.totalLaborEst - materialTotals.totalActualHours) < 0 ? "text-red-400" : "text-emerald-400")}>
+                              {(materialTotals.totalLaborEst - materialTotals.totalActualHours).toLocaleString()} remaining
                             </div>
                           </div>
                         </div>
@@ -1503,54 +1513,112 @@ export default function App() {
                         ) : (
                           <div className="space-y-2">
                             {/* Table Header */}
-                            <div className="grid grid-cols-[2fr_0.8fr_0.8fr_0.8fr_1fr_0.5fr] gap-2 px-3 py-2 text-[9px] font-bold uppercase tracking-widest opacity-60">
+                            <div className="grid grid-cols-[2fr_0.7fr_0.7fr_0.7fr_1fr_1fr_auto] gap-2 px-3 py-2 text-[9px] font-bold uppercase tracking-widest opacity-60">
                               <div>Material</div>
-                              <div className="text-center">Qty Needed</div>
+                              <div className="text-center">Needed</div>
                               <div className="text-center">Installed</div>
                               <div className="text-center">Remaining</div>
-                              <div className="text-center">Labor Generated</div>
+                              <div className="text-center">Hours (Actual / Est)</div>
+                              <div className="text-center">Action</div>
                               <div></div>
                             </div>
                             {materials.map(mat => {
                               const remaining = mat.quantity - mat.quantity_used;
-                              const laborUsed = mat.quantity_used * mat.labor_hours_per_unit;
+                              const laborEst = mat.quantity * mat.labor_hours_per_unit;
+                              const actualHrs = mat.actual_labor_hours || 0;
                               const progress = mat.quantity > 0 ? (mat.quantity_used / mat.quantity) * 100 : 0;
+                              const isLogging = logMaterialId === mat.id;
                               return (
-                                <div key={mat.id} className="grid grid-cols-[2fr_0.8fr_0.8fr_0.8fr_1fr_0.5fr] gap-2 items-center bg-white/5 border border-white/10 rounded-xl px-3 py-3">
-                                  <div>
-                                    <div className="font-bold text-sm">{mat.name}</div>
-                                    <div className="text-[10px] opacity-50">{mat.labor_hours_per_unit}h per unit</div>
-                                    <div className="w-full h-1.5 bg-white/10 rounded-full mt-1.5 overflow-hidden">
-                                      <div className={cn("h-full rounded-full", progress > 100 ? "bg-red-500" : "bg-dashboard-accent")} style={{ width: `${Math.min(progress, 100)}%` }} />
+                                <div key={mat.id} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                                  <div className="grid grid-cols-[2fr_0.7fr_0.7fr_0.7fr_1fr_1fr_auto] gap-2 items-center px-3 py-3">
+                                    <div>
+                                      <div className="font-bold text-sm">{mat.name}</div>
+                                      <div className="text-[10px] opacity-50">{mat.labor_hours_per_unit}h per unit</div>
+                                      <div className="w-full h-1.5 bg-white/10 rounded-full mt-1.5 overflow-hidden">
+                                        <div className={cn("h-full rounded-full", progress > 100 ? "bg-red-500" : "bg-dashboard-accent")} style={{ width: `${Math.min(progress, 100)}%` }} />
+                                      </div>
+                                    </div>
+                                    <div className="text-center font-bold">{mat.quantity.toLocaleString()}</div>
+                                    <div className="text-center font-bold text-dashboard-accent">{mat.quantity_used.toLocaleString()}</div>
+                                    <div className={cn("text-center font-bold", remaining < 0 ? "text-red-400" : "text-emerald-400")}>
+                                      {remaining.toLocaleString()}
+                                    </div>
+                                    <div className="text-center text-sm">
+                                      <span className="font-bold text-amber-400">{actualHrs.toLocaleString()}h</span>
+                                      <span className="opacity-50"> / {laborEst.toLocaleString()}h</span>
+                                    </div>
+                                    <div className="text-center">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (isLogging) {
+                                            setLogMaterialId(null);
+                                            setLogQty(''); setLogHours('');
+                                          } else {
+                                            setLogMaterialId(mat.id);
+                                            setLogQty(''); setLogHours('');
+                                          }
+                                        }}
+                                        className={cn(
+                                          "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
+                                          isLogging
+                                            ? "bg-white/10 text-white"
+                                            : "bg-dashboard-accent/20 text-dashboard-accent hover:bg-dashboard-accent/30"
+                                        )}
+                                      >
+                                        {isLogging ? 'Cancel' : '+ Log Install'}
+                                      </button>
+                                    </div>
+                                    <div className="text-center">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteMaterial(mat.id)}
+                                        className="p-1.5 rounded-lg hover:bg-red-500/20 hover:text-red-400 transition-all opacity-40 hover:opacity-100"
+                                      >
+                                        <Trash2 size={14} />
+                                      </button>
                                     </div>
                                   </div>
-                                  <div className="text-center font-bold">{mat.quantity.toLocaleString()}</div>
-                                  <div className="text-center">
-                                    <input
-                                      type="number"
-                                      value={mat.quantity_used}
-                                      onChange={(e) => handleUpdateMaterialQty(mat.id, parseFloat(e.target.value) || 0)}
-                                      className="w-full bg-black/40 border border-white/20 rounded-lg py-1 px-2 text-center text-sm font-bold focus:border-dashboard-accent outline-none"
-                                      step="1"
-                                      min="0"
-                                    />
-                                  </div>
-                                  <div className={cn("text-center font-bold", remaining < 0 ? "text-red-400" : "text-emerald-400")}>
-                                    {remaining.toLocaleString()}
-                                  </div>
-                                  <div className="text-center text-sm">
-                                    <span className="font-bold text-amber-400">{laborUsed.toLocaleString()}h</span>
-                                    <span className="opacity-50"> / {(mat.quantity * mat.labor_hours_per_unit).toLocaleString()}h</span>
-                                  </div>
-                                  <div className="text-center">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteMaterial(mat.id)}
-                                      className="p-1.5 rounded-lg hover:bg-red-500/20 hover:text-red-400 transition-all opacity-40 hover:opacity-100"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
-                                  </div>
+                                  {/* Expandable Log Install Form */}
+                                  {isLogging && (
+                                    <div className="px-3 pb-3 pt-1 bg-dashboard-accent/5 border-t border-dashboard-accent/20">
+                                      <div className="grid grid-cols-[1fr_1fr_auto] gap-3 items-end">
+                                        <div>
+                                          <label className="text-[9px] font-bold uppercase tracking-widest opacity-60 block mb-1">Qty Installed Today</label>
+                                          <input
+                                            type="number"
+                                            value={logQty}
+                                            onChange={(e) => setLogQty(e.target.value)}
+                                            placeholder="e.g. 50"
+                                            className="w-full bg-black/40 border border-white/20 rounded-lg py-2 px-3 text-sm font-bold focus:border-dashboard-accent outline-none"
+                                            min="0"
+                                            step="1"
+                                            autoFocus
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="text-[9px] font-bold uppercase tracking-widest opacity-60 block mb-1">Hours Worked</label>
+                                          <input
+                                            type="number"
+                                            value={logHours}
+                                            onChange={(e) => setLogHours(e.target.value)}
+                                            placeholder="e.g. 4"
+                                            className="w-full bg-black/40 border border-white/20 rounded-lg py-2 px-3 text-sm font-bold focus:border-dashboard-accent outline-none"
+                                            min="0"
+                                            step="0.25"
+                                          />
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleLogInstall(mat.id)}
+                                          disabled={(!logQty || parseFloat(logQty) <= 0) && (!logHours || parseFloat(logHours) <= 0)}
+                                          className="bg-dashboard-accent text-black font-bold py-2 px-5 rounded-lg text-xs uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30"
+                                        >
+                                          Submit
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}

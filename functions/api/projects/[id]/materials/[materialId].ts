@@ -1,6 +1,8 @@
 import { Env, getUserFromToken, getToken, jsonResponse } from "../../../../_shared/auth";
 
-// PUT /api/projects/:id/materials/:materialId — Update quantity_used
+// PUT /api/projects/:id/materials/:materialId — Log daily install
+// Accepts: { add_qty: number, add_hours: number }
+// Increments quantity_used and actual_labor_hours, also adds hours to project's used_labor_hours
 export const onRequestPut: PagesFunction<Env> = async (context) => {
     try {
         const token = getToken(context.request);
@@ -17,14 +19,25 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
             return jsonResponse({ error: "Access denied" }, 403);
         }
 
-        const { quantity_used } = await context.request.json() as { quantity_used: number };
-        if (quantity_used === undefined || quantity_used < 0) {
-            return jsonResponse({ error: "Valid quantity_used is required" }, 400);
+        const body = await context.request.json() as any;
+        const addQty = parseFloat(body.add_qty) || 0;
+        const addHours = parseFloat(body.add_hours) || 0;
+
+        if (addQty <= 0 && addHours <= 0) {
+            return jsonResponse({ error: "Provide quantity installed and/or hours worked" }, 400);
         }
 
+        // Increment material quantities
         await context.env.DB.prepare(
-            "UPDATE materials SET quantity_used = ? WHERE id = ? AND project_id = ?"
-        ).bind(quantity_used, materialId, projectId).run();
+            "UPDATE materials SET quantity_used = quantity_used + ?, actual_labor_hours = actual_labor_hours + ? WHERE id = ? AND project_id = ?"
+        ).bind(addQty, addHours, materialId, projectId).run();
+
+        // Also add the hours to the project's used_labor_hours
+        if (addHours > 0) {
+            await context.env.DB.prepare(
+                "UPDATE projects SET used_labor_hours = used_labor_hours + ?, updated_at = datetime('now') WHERE id = ?"
+            ).bind(addHours, projectId).run();
+        }
 
         const updated = await context.env.DB.prepare("SELECT * FROM materials WHERE id = ?")
             .bind(materialId).first();
