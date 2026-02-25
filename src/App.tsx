@@ -1939,15 +1939,19 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                                               type="number"
                                               autoFocus
                                               defaultValue={(mat.unit_cost || 0).toFixed(2)}
-                                              className="w-full bg-black/60 border border-dashboard-accent rounded px-1 py-0.5 text-center text-sm font-bold outline-none"
+                                              className="w-full bg-black/80 border-2 border-dashboard-accent rounded-lg px-2 py-1 text-center text-sm font-bold outline-none text-white"
                                               min="0" step="0.01"
                                               onBlur={(e) => handleUpdateMaterialCost(mat.id, parseFloat(e.target.value) || 0)}
                                               onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') setEditingCostId(null); }}
                                             />
                                           ) : (
-                                            <div className="text-center text-sm font-bold cursor-pointer hover:text-dashboard-accent transition-colors" onClick={() => setEditingCostId(mat.id)} title="Click to edit cost">
-                                              ${(mat.unit_cost || 0).toFixed(2)}
-                                            </div>
+                                            <button
+                                              type="button"
+                                              className="w-full text-center text-sm font-bold px-2 py-1 rounded-lg border border-transparent hover:border-dashboard-accent/50 hover:bg-dashboard-accent/10 cursor-pointer transition-all group"
+                                              onClick={() => setEditingCostId(mat.id)}
+                                            >
+                                              ${(mat.unit_cost || 0).toFixed(2)} <span className="text-[9px] opacity-0 group-hover:opacity-60 transition-opacity">✏️</span>
+                                            </button>
                                           )
                                         )}
                                         {showPricing && <div className="text-center text-sm font-bold text-emerald-400">${extCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>}
@@ -2230,15 +2234,19 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                                               type="number"
                                               autoFocus
                                               defaultValue={(mat.unit_cost || 0).toFixed(2)}
-                                              className="w-full bg-black/60 border border-amber-400 rounded px-1 py-0.5 text-center text-sm font-bold outline-none"
+                                              className="w-full bg-black/80 border-2 border-amber-400 rounded-lg px-2 py-1 text-center text-sm font-bold outline-none text-white"
                                               min="0" step="0.01"
                                               onBlur={(e) => handleUpdateMaterialCost(mat.id, parseFloat(e.target.value) || 0)}
                                               onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') setEditingCostId(null); }}
                                             />
                                           ) : (
-                                            <div className="text-center text-sm font-bold cursor-pointer hover:text-amber-400 transition-colors" onClick={() => setEditingCostId(mat.id)} title="Click to edit cost">
-                                              ${(mat.unit_cost || 0).toFixed(2)}
-                                            </div>
+                                            <button
+                                              type="button"
+                                              className="w-full text-center text-sm font-bold px-2 py-1 rounded-lg border border-transparent hover:border-amber-400/50 hover:bg-amber-400/10 cursor-pointer transition-all group"
+                                              onClick={() => setEditingCostId(mat.id)}
+                                            >
+                                              ${(mat.unit_cost || 0).toFixed(2)} <span className="text-[9px] opacity-0 group-hover:opacity-60 transition-opacity">✏️</span>
+                                            </button>
                                           )
                                         )}
                                         {showPricing && <div className="text-center text-sm font-bold text-emerald-400">${extCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>}
