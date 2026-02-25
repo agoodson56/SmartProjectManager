@@ -471,17 +471,24 @@ export default function App() {
     if (!selectedProject) return;
     const addQty = parseFloat(logQty) || 0;
     const addHours = parseFloat(logHours) || 0;
-    if (addQty <= 0 && addHours <= 0) return;
+    const costVal = parseFloat(logCost);
+    const hasCostChange = !isNaN(costVal);
+    if (addQty <= 0 && addHours <= 0 && !hasCostChange) return;
     try {
+      const body: any = { add_qty: addQty, add_hours: addHours };
+      if (hasCostChange) {
+        body.unit_cost = costVal;
+      }
       const res = await fetch(`/api/projects/${selectedProject.id}/materials/${materialId}`, {
         method: 'PUT',
         headers: authHeaders(),
-        body: JSON.stringify({ add_qty: addQty, add_hours: addHours }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         setLogMaterialId(null);
         setLogQty('');
         setLogHours('');
+        setLogCost('');
         fetchMaterials(selectedProject.id, authToken!);
         fetchProjects(authToken!);
       }
@@ -2024,13 +2031,7 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                                             </div>
                                             <button
                                               type="button"
-                                              onClick={async () => {
-                                                const costVal = parseFloat(logCost);
-                                                if (showPricing && !isNaN(costVal) && costVal !== (mat.unit_cost || 0)) {
-                                                  await handleUpdateMaterialCost(mat.id, costVal);
-                                                }
-                                                await handleLogInstall(mat.id);
-                                              }}
+                                              onClick={() => handleLogInstall(mat.id)}
                                               disabled={(!logQty || parseFloat(logQty) <= 0) && (!logHours || parseFloat(logHours) <= 0) && !(showPricing && logCost && parseFloat(logCost) !== (mat.unit_cost || 0))}
                                               className="bg-dashboard-accent text-black font-bold py-2 px-5 rounded-lg text-xs uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30"
                                             >
@@ -2277,7 +2278,7 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                                           <span className="opacity-50"> / {laborEst.toLocaleString()}h</span>
                                         </div>
                                         <div className="text-center">
-                                          <button type="button" onClick={() => { if (isLogging) { setLogMaterialId(null); setLogQty(''); setLogHours(''); } else { setLogMaterialId(mat.id); setLogQty(''); setLogHours(''); } }} className={cn("px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all", isLogging ? "bg-white/10 text-white" : "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30")}>
+                                          <button type="button" onClick={() => { if (isLogging) { setLogMaterialId(null); setLogQty(''); setLogHours(''); setLogCost(''); } else { setLogMaterialId(mat.id); setLogQty(''); setLogHours(''); setLogCost((mat.unit_cost || 0).toString()); } }} className={cn("px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all", isLogging ? "bg-white/10 text-white" : "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30")}>
                                             {isLogging ? 'Cancel' : '+ Log Install'}
                                           </button>
                                         </div>
@@ -2298,13 +2299,7 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                                               <label className="text-[9px] font-bold uppercase tracking-widest opacity-60 block mb-1">Hours Worked</label>
                                               <input type="number" value={logHours} onChange={(e) => setLogHours(e.target.value)} placeholder="e.g. 4" className="w-full bg-black/40 border border-white/20 rounded-lg py-2 px-3 text-sm font-bold focus:border-amber-400 outline-none" min="0" step="0.25" />
                                             </div>
-                                            <button type="button" onClick={async () => {
-                                              const costVal = parseFloat(logCost);
-                                              if (showPricing && !isNaN(costVal) && costVal !== (mat.unit_cost || 0)) {
-                                                await handleUpdateMaterialCost(mat.id, costVal);
-                                              }
-                                              await handleLogInstall(mat.id);
-                                            }} disabled={(!logQty || parseFloat(logQty) <= 0) && (!logHours || parseFloat(logHours) <= 0) && !(showPricing && logCost && parseFloat(logCost) !== (mat.unit_cost || 0))} className="bg-amber-500 text-black font-bold py-2 px-5 rounded-lg text-xs uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30">
+                                            <button type="button" onClick={() => handleLogInstall(mat.id)} disabled={(!logQty || parseFloat(logQty) <= 0) && (!logHours || parseFloat(logHours) <= 0) && !(showPricing && logCost && parseFloat(logCost) !== (mat.unit_cost || 0))} className="bg-amber-500 text-black font-bold py-2 px-5 rounded-lg text-xs uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30">
                                               Submit
                                             </button>
                                           </div>

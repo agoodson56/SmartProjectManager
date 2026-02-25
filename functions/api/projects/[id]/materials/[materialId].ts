@@ -22,15 +22,25 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         const body = await context.request.json() as any;
         const addQty = parseFloat(body.add_qty) || 0;
         const addHours = parseFloat(body.add_hours) || 0;
+        const unitCost = body.unit_cost !== undefined ? parseFloat(body.unit_cost) : undefined;
 
-        if (addQty <= 0 && addHours <= 0) {
-            return jsonResponse({ error: "Provide quantity installed and/or hours worked" }, 400);
+        if (addQty <= 0 && addHours <= 0 && unitCost === undefined) {
+            return jsonResponse({ error: "Provide quantity installed, hours worked, or unit cost" }, 400);
         }
 
         // Increment material quantities
-        await context.env.DB.prepare(
-            "UPDATE materials SET quantity_used = quantity_used + ?, actual_labor_hours = actual_labor_hours + ? WHERE id = ? AND project_id = ?"
-        ).bind(addQty, addHours, materialId, projectId).run();
+        if (addQty > 0 || addHours > 0) {
+            await context.env.DB.prepare(
+                "UPDATE materials SET quantity_used = quantity_used + ?, actual_labor_hours = actual_labor_hours + ? WHERE id = ? AND project_id = ?"
+            ).bind(addQty, addHours, materialId, projectId).run();
+        }
+
+        // Update unit cost if provided
+        if (unitCost !== undefined && !isNaN(unitCost)) {
+            await context.env.DB.prepare(
+                "UPDATE materials SET unit_cost = ? WHERE id = ? AND project_id = ?"
+            ).bind(unitCost, materialId, projectId).run();
+        }
 
         // Also add the hours to the project's used_labor_hours
         if (addHours > 0) {
