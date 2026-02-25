@@ -61,6 +61,7 @@ export default function App() {
   const [logMaterialId, setLogMaterialId] = useState<number | null>(null);
   const [logQty, setLogQty] = useState('');
   const [logHours, setLogHours] = useState('');
+  const [editingCostId, setEditingCostId] = useState<number | null>(null);
 
   // Proposal upload state
   const [proposalMaterials, setProposalMaterials] = useState<{ name: string; quantity: number; labor_hours_per_unit: number; unit_cost: number; selected: boolean }[]>([]);
@@ -499,6 +500,22 @@ export default function App() {
     } catch (err) {
       console.error('Failed to delete material', err);
     }
+  };
+
+  // --- Edit material cost inline ---
+  const handleUpdateMaterialCost = async (materialId: number, newCost: number) => {
+    if (!selectedProject) return;
+    try {
+      await fetch(`/api/projects/${selectedProject.id}/materials/${materialId}`, {
+        method: 'PATCH',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ unit_cost: newCost }),
+      });
+      fetchMaterials(selectedProject.id, authToken!);
+    } catch (err) {
+      console.error('Failed to update material cost', err);
+    }
+    setEditingCostId(null);
   };
 
   // --- Proposal Upload & AI Extraction ---
@@ -1916,7 +1933,23 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                                         <div className={cn("text-center font-bold", remaining < 0 ? "text-red-400" : "text-emerald-400")}>
                                           {remaining.toLocaleString()}
                                         </div>
-                                        {showPricing && <div className="text-center text-sm font-bold">${(mat.unit_cost || 0).toFixed(2)}</div>}
+                                        {showPricing && (
+                                          editingCostId === mat.id ? (
+                                            <input
+                                              type="number"
+                                              autoFocus
+                                              defaultValue={(mat.unit_cost || 0).toFixed(2)}
+                                              className="w-full bg-black/60 border border-dashboard-accent rounded px-1 py-0.5 text-center text-sm font-bold outline-none"
+                                              min="0" step="0.01"
+                                              onBlur={(e) => handleUpdateMaterialCost(mat.id, parseFloat(e.target.value) || 0)}
+                                              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') setEditingCostId(null); }}
+                                            />
+                                          ) : (
+                                            <div className="text-center text-sm font-bold cursor-pointer hover:text-dashboard-accent transition-colors" onClick={() => setEditingCostId(mat.id)} title="Click to edit cost">
+                                              ${(mat.unit_cost || 0).toFixed(2)}
+                                            </div>
+                                          )
+                                        )}
                                         {showPricing && <div className="text-center text-sm font-bold text-emerald-400">${extCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>}
                                         <div className="text-center text-sm">
                                           <span className="font-bold text-amber-400">{actualHrs.toLocaleString()}h</span>
@@ -2191,7 +2224,23 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                                         <div className={cn("text-center font-bold", remaining < 0 ? "text-red-400" : "text-emerald-400")}>
                                           {remaining.toLocaleString()}
                                         </div>
-                                        {showPricing && <div className="text-center text-sm font-bold">${(mat.unit_cost || 0).toFixed(2)}</div>}
+                                        {showPricing && (
+                                          editingCostId === mat.id ? (
+                                            <input
+                                              type="number"
+                                              autoFocus
+                                              defaultValue={(mat.unit_cost || 0).toFixed(2)}
+                                              className="w-full bg-black/60 border border-amber-400 rounded px-1 py-0.5 text-center text-sm font-bold outline-none"
+                                              min="0" step="0.01"
+                                              onBlur={(e) => handleUpdateMaterialCost(mat.id, parseFloat(e.target.value) || 0)}
+                                              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') setEditingCostId(null); }}
+                                            />
+                                          ) : (
+                                            <div className="text-center text-sm font-bold cursor-pointer hover:text-amber-400 transition-colors" onClick={() => setEditingCostId(mat.id)} title="Click to edit cost">
+                                              ${(mat.unit_cost || 0).toFixed(2)}
+                                            </div>
+                                          )
+                                        )}
                                         {showPricing && <div className="text-center text-sm font-bold text-emerald-400">${extCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>}
                                         <div className="text-center text-sm">
                                           <span className="font-bold text-amber-400">{actualHrs.toLocaleString()}h</span>
