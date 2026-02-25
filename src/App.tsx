@@ -61,6 +61,7 @@ export default function App() {
   const [logMaterialId, setLogMaterialId] = useState<number | null>(null);
   const [logQty, setLogQty] = useState('');
   const [logHours, setLogHours] = useState('');
+  const [logCost, setLogCost] = useState('');
   const [editingCostId, setEditingCostId] = useState<number | null>(null);
 
   // Proposal upload state
@@ -1965,10 +1966,11 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                                             onClick={() => {
                                               if (isLogging) {
                                                 setLogMaterialId(null);
-                                                setLogQty(''); setLogHours('');
+                                                setLogQty(''); setLogHours(''); setLogCost('');
                                               } else {
                                                 setLogMaterialId(mat.id);
                                                 setLogQty(''); setLogHours('');
+                                                setLogCost((mat.unit_cost || 0).toString());
                                               }
                                             }}
                                             className={cn(
@@ -2022,13 +2024,33 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                                             </div>
                                             <button
                                               type="button"
-                                              onClick={() => handleLogInstall(mat.id)}
-                                              disabled={(!logQty || parseFloat(logQty) <= 0) && (!logHours || parseFloat(logHours) <= 0)}
+                                              onClick={async () => {
+                                                const costVal = parseFloat(logCost);
+                                                if (showPricing && !isNaN(costVal) && costVal !== (mat.unit_cost || 0)) {
+                                                  await handleUpdateMaterialCost(mat.id, costVal);
+                                                }
+                                                await handleLogInstall(mat.id);
+                                              }}
+                                              disabled={(!logQty || parseFloat(logQty) <= 0) && (!logHours || parseFloat(logHours) <= 0) && !(showPricing && logCost && parseFloat(logCost) !== (mat.unit_cost || 0))}
                                               className="bg-dashboard-accent text-black font-bold py-2 px-5 rounded-lg text-xs uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30"
                                             >
                                               Submit
                                             </button>
                                           </div>
+                                          {showPricing && (
+                                            <div className="mt-3 pt-3 border-t border-white/10">
+                                              <label className="text-[9px] font-bold uppercase tracking-widest opacity-60 block mb-1">💰 Unit Cost ($)</label>
+                                              <input
+                                                type="number"
+                                                value={logCost}
+                                                onChange={(e) => setLogCost(e.target.value)}
+                                                placeholder="e.g. 25.00"
+                                                className="w-full bg-black/40 border border-emerald-500/40 rounded-lg py-2 px-3 text-sm font-bold text-emerald-400 focus:border-emerald-400 outline-none"
+                                                min="0"
+                                                step="0.01"
+                                              />
+                                            </div>
+                                          )}
                                         </div>
                                       )}
                                     </div>
@@ -2276,10 +2298,30 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                                               <label className="text-[9px] font-bold uppercase tracking-widest opacity-60 block mb-1">Hours Worked</label>
                                               <input type="number" value={logHours} onChange={(e) => setLogHours(e.target.value)} placeholder="e.g. 4" className="w-full bg-black/40 border border-white/20 rounded-lg py-2 px-3 text-sm font-bold focus:border-amber-400 outline-none" min="0" step="0.25" />
                                             </div>
-                                            <button type="button" onClick={() => handleLogInstall(mat.id)} disabled={(!logQty || parseFloat(logQty) <= 0) && (!logHours || parseFloat(logHours) <= 0)} className="bg-amber-500 text-black font-bold py-2 px-5 rounded-lg text-xs uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30">
+                                            <button type="button" onClick={async () => {
+                                              const costVal = parseFloat(logCost);
+                                              if (showPricing && !isNaN(costVal) && costVal !== (mat.unit_cost || 0)) {
+                                                await handleUpdateMaterialCost(mat.id, costVal);
+                                              }
+                                              await handleLogInstall(mat.id);
+                                            }} disabled={(!logQty || parseFloat(logQty) <= 0) && (!logHours || parseFloat(logHours) <= 0) && !(showPricing && logCost && parseFloat(logCost) !== (mat.unit_cost || 0))} className="bg-amber-500 text-black font-bold py-2 px-5 rounded-lg text-xs uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30">
                                               Submit
                                             </button>
                                           </div>
+                                          {showPricing && (
+                                            <div className="mt-3 pt-3 border-t border-white/10">
+                                              <label className="text-[9px] font-bold uppercase tracking-widest opacity-60 block mb-1">💰 Unit Cost ($)</label>
+                                              <input
+                                                type="number"
+                                                value={logCost}
+                                                onChange={(e) => setLogCost(e.target.value)}
+                                                placeholder="e.g. 25.00"
+                                                className="w-full bg-black/40 border border-emerald-500/40 rounded-lg py-2 px-3 text-sm font-bold text-emerald-400 focus:border-emerald-400 outline-none"
+                                                min="0"
+                                                step="0.01"
+                                              />
+                                            </div>
+                                          )}
                                         </div>
                                       )}
                                     </div>
