@@ -44,14 +44,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             return jsonResponse({ error: "Access denied" }, 403);
         }
 
-        const { name, quantity, labor_hours_per_unit } = await context.request.json() as any;
+        const { name, quantity, labor_hours_per_unit, is_addon } = await context.request.json() as any;
         if (!name || !quantity || quantity <= 0 || !labor_hours_per_unit || labor_hours_per_unit <= 0) {
             return jsonResponse({ error: "Name, quantity, and labor hours per unit are required" }, 400);
         }
 
         const result = await context.env.DB.prepare(
-            "INSERT INTO materials (project_id, name, quantity, labor_hours_per_unit) VALUES (?, ?, ?, ?)"
-        ).bind(projectId, name, quantity, labor_hours_per_unit).run();
+            "INSERT INTO materials (project_id, name, quantity, labor_hours_per_unit, is_addon) VALUES (?, ?, ?, ?, ?)"
+        ).bind(projectId, name, quantity, labor_hours_per_unit, is_addon ? 1 : 0).run();
 
         const newMaterial = await context.env.DB.prepare("SELECT * FROM materials WHERE id = ?")
             .bind(result.meta.last_row_id).first();

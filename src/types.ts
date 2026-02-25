@@ -12,6 +12,10 @@ export interface Project {
   completed_at: string | null;
   deadline: string | null;
   updated_at: string;
+  mat_labor_est: number;
+  mat_labor_actual: number;
+  mat_count: number;
+  addon_count: number;
   materials?: Material[];
 }
 
@@ -21,8 +25,10 @@ export interface Material {
   name: string;
   quantity: number;
   labor_hours_per_unit: number;
+  unit_cost: number;
   quantity_used: number;
   actual_labor_hours: number;
+  is_addon: number;
   created_at: string;
 }
 
@@ -33,5 +39,5 @@ export interface User {
   must_change_password: boolean;
 }
 
-export const MANAGERS = ['Cos', 'Brett', 'Kurt', 'Richard'] as const;
+export const MANAGERS = ['Cos', 'Brett', 'Kurt', 'Richard', 'Daniel'] as const;
 export type Manager = typeof MANAGERS[number];

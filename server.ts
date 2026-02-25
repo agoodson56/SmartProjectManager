@@ -55,6 +55,30 @@ try {
   db.prepare("ALTER TABLE projects ADD COLUMN used_odc REAL DEFAULT 0").run();
 } catch (e) { }
 
+// Create materials table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS materials (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    quantity REAL DEFAULT 1,
+    labor_hours_per_unit REAL DEFAULT 0,
+    unit_cost REAL DEFAULT 0,
+    quantity_used REAL DEFAULT 0,
+    actual_labor_hours REAL DEFAULT 0,
+    is_addon INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+  )
+`);
+// Migration: Add unit_cost column if missing
+try {
+  db.prepare("ALTER TABLE materials ADD COLUMN unit_cost REAL DEFAULT 0").run();
+} catch (e) { }
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN used_odc REAL DEFAULT 0").run();
+} catch (e) { }
+
 // ========== AUTH TABLES ==========
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
@@ -85,7 +109,16 @@ if (userCount.count === 0) {
   insertUser.run("Brett", defaultHash, "manager");
   insertUser.run("Kurt", defaultHash, "manager");
   insertUser.run("Richard", defaultHash, "manager");
+  insertUser.run("Daniel", defaultHash, "manager");
 }
+// Ensure Daniel exists (migration for existing DBs)
+try {
+  const daniel = db.prepare("SELECT id FROM users WHERE username = 'Daniel'").get();
+  if (!daniel) {
+    const defaultHash = bcryptjs.hashSync("3DTSI", 10);
+    db.prepare("INSERT INTO users (username, password_hash, role, must_change_password) VALUES (?, ?, ?, 1)").run("Daniel", defaultHash, "manager");
+  }
+} catch (e) { }
 
 // Helper: get user from session token
 function getUserFromToken(token: string | undefined) {
@@ -112,7 +145,7 @@ async function startServer() {
   const httpServer = createServer(app);
   const io = new Server(httpServer, {
     cors: {
-      origin: "http://localhost:3000",
+      origin: ["http://localhost:3000", "http://localhost:5173"],
     },
   });
 
@@ -220,22 +253,32 @@ async function startServer() {
       const token = req.headers.authorization?.replace("Bearer ", "");
       const user = getUserFromToken(token);
 
+      const matSummary = `
+        SELECT p.*,
+          COALESCE(SUM(CASE WHEN m.is_addon = 0 THEN 1 ELSE 0 END), 0) as mat_count,
+          COALESCE(SUM(CASE WHEN m.is_addon = 1 THEN 1 ELSE 0 END), 0) as addon_count,
+          COALESCE(SUM(m.quantity * m.labor_hours_per_unit), 0) as mat_labor_est,
+          COALESCE(SUM(m.actual_labor_hours), 0) as mat_labor_actual
+        FROM projects p
+        LEFT JOIN materials m ON m.project_id = p.id
+      `;
+
       let projects;
       if (user && user.role === 'manager') {
-        // Managers only see their own projects
         projects = db.prepare(`
-          SELECT * FROM projects 
-          WHERE manager = ?
-          AND (completed_at IS NULL OR completed_at > datetime('now', '-30 days'))
-          ORDER BY updated_at DESC
+          ${matSummary}
+          WHERE p.manager = ?
+          AND (p.completed_at IS NULL OR p.completed_at > datetime('now', '-30 days'))
+          GROUP BY p.id
+          ORDER BY p.updated_at DESC
         `).all(user.username);
       } else {
-        // Admin or unauthenticated (for backward compat) sees all
         projects = db.prepare(`
-          SELECT * FROM projects 
-          WHERE completed_at IS NULL 
-          OR completed_at > datetime('now', '-30 days')
-          ORDER BY updated_at DESC
+          ${matSummary}
+          WHERE p.completed_at IS NULL 
+          OR p.completed_at > datetime('now', '-30 days')
+          GROUP BY p.id
+          ORDER BY p.updated_at DESC
         `).all();
       }
       res.json(projects);
@@ -326,6 +369,111 @@ async function startServer() {
     } catch (err) {
       console.error("DELETE /api/projects error:", err);
       res.status(500).json({ error: "Failed to delete project" });
+    }
+  });
+
+  // ========== MATERIAL ROUTES ==========
+
+  app.get("/api/projects/:id/materials", (req, res) => {
+    try {
+      const { id } = req.params;
+      const materials = db.prepare("SELECT * FROM materials WHERE project_id = ? ORDER BY created_at ASC").all(id);
+      res.json(materials);
+    } catch (err: any) {
+      console.error("GET /api/materials error:", err);
+      res.status(500).json({ error: "Failed to fetch materials" });
+    }
+  });
+
+  app.post("/api/projects/:id/materials", (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, quantity, labor_hours_per_unit, unit_cost, is_addon } = req.body;
+      if (!name) return res.status(400).json({ error: "Material name is required" });
+
+      const result = db.prepare(
+        "INSERT INTO materials (project_id, name, quantity, labor_hours_per_unit, unit_cost, is_addon) VALUES (?, ?, ?, ?, ?, ?)"
+      ).run(id, name, quantity || 1, labor_hours_per_unit || 0, unit_cost || 0, is_addon ? 1 : 0);
+
+      // Touch project updated_at
+      db.prepare("UPDATE projects SET updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(id);
+
+      const newMaterial = db.prepare("SELECT * FROM materials WHERE id = ?").get(result.lastInsertRowid);
+      io.emit("material:updated", { projectId: id });
+      res.json(newMaterial);
+    } catch (err: any) {
+      console.error("POST /api/materials error:", err);
+      res.status(500).json({ error: err.message || "Failed to add material" });
+    }
+  });
+
+  app.put("/api/materials/:id", (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, quantity, labor_hours_per_unit, unit_cost, quantity_used, actual_labor_hours, is_addon } = req.body;
+
+      db.prepare(`
+        UPDATE materials SET
+          name = COALESCE(?, name),
+          quantity = COALESCE(?, quantity),
+          labor_hours_per_unit = COALESCE(?, labor_hours_per_unit),
+          unit_cost = COALESCE(?, unit_cost),
+          quantity_used = COALESCE(?, quantity_used),
+          actual_labor_hours = COALESCE(?, actual_labor_hours),
+          is_addon = COALESCE(?, is_addon)
+        WHERE id = ?
+      `).run(name, quantity, labor_hours_per_unit, unit_cost, quantity_used, actual_labor_hours, is_addon !== undefined ? (is_addon ? 1 : 0) : undefined, id);
+
+      const updated = db.prepare("SELECT * FROM materials WHERE id = ?").get(id) as any;
+      if (updated) {
+        db.prepare("UPDATE projects SET updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(updated.project_id);
+        io.emit("material:updated", { projectId: updated.project_id });
+      }
+      res.json(updated);
+    } catch (err: any) {
+      console.error("PUT /api/materials error:", err);
+      res.status(500).json({ error: err.message || "Failed to update material" });
+    }
+  });
+
+  app.delete("/api/materials/:id", (req, res) => {
+    try {
+      const { id } = req.params;
+      const mat = db.prepare("SELECT project_id FROM materials WHERE id = ?").get(id) as any;
+      db.prepare("DELETE FROM materials WHERE id = ?").run(id);
+      if (mat) {
+        db.prepare("UPDATE projects SET updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(mat.project_id);
+        io.emit("material:updated", { projectId: mat.project_id });
+      }
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("DELETE /api/materials error:", err);
+      res.status(500).json({ error: "Failed to delete material" });
+    }
+  });
+
+  // Log installation / labor hours for a material
+  app.post("/api/materials/:id/log-install", (req, res) => {
+    try {
+      const { id } = req.params;
+      const { quantity_installed, labor_hours } = req.body;
+
+      db.prepare(`
+        UPDATE materials SET
+          quantity_used = quantity_used + COALESCE(?, 0),
+          actual_labor_hours = actual_labor_hours + COALESCE(?, 0)
+        WHERE id = ?
+      `).run(quantity_installed || 0, labor_hours || 0, id);
+
+      const updated = db.prepare("SELECT * FROM materials WHERE id = ?").get(id) as any;
+      if (updated) {
+        db.prepare("UPDATE projects SET updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(updated.project_id);
+        io.emit("material:updated", { projectId: updated.project_id });
+      }
+      res.json(updated);
+    } catch (err: any) {
+      console.error("POST /api/materials/log-install error:", err);
+      res.status(500).json({ error: err.message || "Failed to log installation" });
     }
   });
 
