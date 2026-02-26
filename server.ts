@@ -110,6 +110,9 @@ if (userCount.count === 0) {
   insertUser.run("Kurt", defaultHash, "manager");
   insertUser.run("Richard", defaultHash, "manager");
   insertUser.run("Daniel", defaultHash, "manager");
+  insertUser.run("Kyle", defaultHash, "manager");
+  insertUser.run("Eric", defaultHash, "manager");
+  insertUser.run("DanielR", defaultHash, "manager");
 }
 // Ensure Daniel exists (migration for existing DBs)
 try {
@@ -404,6 +407,20 @@ async function startServer() {
     } catch (err: any) {
       console.error("POST /api/materials error:", err);
       res.status(500).json({ error: err.message || "Failed to add material" });
+    }
+  });
+
+  // Clear ALL materials for a project
+  app.delete("/api/projects/:id/materials", (req, res) => {
+    try {
+      const { id } = req.params;
+      db.prepare("DELETE FROM materials WHERE project_id = ?").run(id);
+      db.prepare("UPDATE projects SET updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(id);
+      io.emit("material:updated", { projectId: id });
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("DELETE all materials error:", err);
+      res.status(500).json({ error: "Failed to clear materials" });
     }
   });
 

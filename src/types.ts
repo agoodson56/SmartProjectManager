@@ -39,5 +39,5 @@ export interface User {
   must_change_password: boolean;
 }
 
-export const MANAGERS = ['Cos', 'Brett', 'Kurt', 'Richard', 'Daniel'] as const;
+export const MANAGERS = ['Cos', 'Brett', 'Kurt', 'Richard', 'Daniel', 'Kyle', 'Eric', 'DanielR'] as const;
 export type Manager = typeof MANAGERS[number];

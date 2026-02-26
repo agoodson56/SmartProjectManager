@@ -62,3 +62,34 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         return jsonResponse({ error: "Failed to add material" }, 500);
     }
 };
+
+// DELETE /api/projects/:id/materials — Clear ALL materials for a project
+export const onRequestDelete: PagesFunction<Env> = async (context) => {
+    try {
+        const token = getToken(context.request);
+        const user = await getUserFromToken(context.env.DB, token);
+        if (!user) return jsonResponse({ error: "Not authenticated" }, 401);
+
+        const projectId = context.params.id;
+
+        const project = await context.env.DB.prepare("SELECT manager FROM projects WHERE id = ?")
+            .bind(projectId).first<{ manager: string }>();
+        if (!project) return jsonResponse({ error: "Project not found" }, 404);
+        if (user.role !== "admin" && project.manager !== user.username) {
+            return jsonResponse({ error: "Access denied" }, 403);
+        }
+
+        await context.env.DB.prepare("DELETE FROM materials WHERE project_id = ?")
+            .bind(projectId).run();
+
+        // Reset project timestamps
+        await context.env.DB.prepare(
+            "UPDATE projects SET updated_at = datetime('now') WHERE id = ?"
+        ).bind(projectId).run();
+
+        return jsonResponse({ success: true });
+    } catch (err) {
+        console.error("DELETE all materials error:", err);
+        return jsonResponse({ error: "Failed to clear materials" }, 500);
+    }
+};
