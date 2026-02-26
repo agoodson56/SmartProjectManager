@@ -761,7 +761,8 @@ If you truly cannot find ANY materials in the document, return an empty array: [
     const totalUsed = mats.reduce((s, m) => s + m.quantity_used, 0);
     const totalLaborEst = mats.reduce((s, m) => s + (m.quantity * m.labor_hours_per_unit), 0);
     const totalActualHours = mats.reduce((s, m) => s + (m.actual_labor_hours || 0), 0);
-    return { totalQty, totalUsed, totalRemaining: totalQty - totalUsed, totalLaborEst, totalActualHours };
+    const totalCost = mats.reduce((s, m) => s + (m.quantity * (m.unit_cost || 0)), 0);
+    return { totalQty, totalUsed, totalRemaining: totalQty - totalUsed, totalLaborEst, totalActualHours, totalCost };
   };
 
   const materialTotals = useMemo(() => calcMaterialTotals(materials), [materials]);
@@ -869,6 +870,7 @@ If you truly cannot find ANY materials in the document, return an empty array: [
       const matRows = materials.map(m => {
         const laborEst = m.quantity * m.labor_hours_per_unit;
         const remaining = m.quantity - m.quantity_used;
+        const extCost = m.quantity * (m.unit_cost || 0);
         return {
           'Project': selectedProject.name,
           'Material': m.name,
@@ -876,6 +878,8 @@ If you truly cannot find ANY materials in the document, return an empty array: [
           'Qty Needed': m.quantity,
           'Qty Installed': m.quantity_used,
           'Remaining': remaining,
+          'Unit Cost': m.unit_cost || 0,
+          'Ext. Cost': extCost,
           'Labor Hrs/Unit': m.labor_hours_per_unit,
           'Est. Total Labor': laborEst,
           'Actual Labor': m.actual_labor_hours || 0,
@@ -1754,7 +1758,7 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                     ) : editMode === 'materials' ? (
                       <div className="space-y-6">
                         {/* Combined Material Summary */}
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className={`grid ${showPricing ? 'grid-cols-4' : 'grid-cols-3'} gap-3`}>
                           <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
                             <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-1">All Materials</div>
                             <div className="text-lg font-bold">{materialTotals.totalUsed.toLocaleString()} <span className="text-sm opacity-50">/ {materialTotals.totalQty.toLocaleString()}</span></div>
@@ -1773,6 +1777,12 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                               {(materialTotals.totalLaborEst - materialTotals.totalActualHours).toLocaleString()} remaining
                             </div>
                           </div>
+                          {showPricing && (
+                            <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3 text-center">
+                              <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-400/70 mb-1">Est. Material Cost</div>
+                              <div className="text-lg font-bold text-emerald-400">${materialTotals.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                            </div>
+                          )}
                         </div>
 
                         {/* ===== PROPOSAL UPLOAD PANEL ===== */}

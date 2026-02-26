@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS materials (
   name TEXT NOT NULL,
   quantity REAL NOT NULL DEFAULT 0,
   labor_hours_per_unit REAL NOT NULL DEFAULT 0,
+  unit_cost REAL NOT NULL DEFAULT 0,
   quantity_used REAL NOT NULL DEFAULT 0,
   actual_labor_hours REAL NOT NULL DEFAULT 0,
   is_addon INTEGER NOT NULL DEFAULT 0,
