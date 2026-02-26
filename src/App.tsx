@@ -510,6 +510,21 @@ export default function App() {
     }
   };
 
+  // --- Clear ALL materials ---
+  const handleClearAllMaterials = async () => {
+    if (!selectedProject || !confirm(`⚠️ Clear ALL ${materials.length} materials from this project? This cannot be undone.`)) return;
+    try {
+      await fetch(`/api/projects/${selectedProject.id}/materials`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      fetchMaterials(selectedProject.id, authToken!);
+      fetchProjects(authToken!);
+    } catch (err) {
+      console.error('Failed to clear materials', err);
+    }
+  };
+
   // --- Edit material cost inline ---
   const handleUpdateMaterialCost = async (materialId: number, newCost: number) => {
     if (!selectedProject) return;
@@ -750,7 +765,7 @@ If you truly cannot find ANY materials in the document, return an empty array: [
   };
 
   // Role-based pricing visibility — only managers and admins see cost data
-  const showPricing = currentUser?.role === 'manager' || currentUser?.role === 'admin';
+  const showPricing = currentUser?.role === 'manager' || currentUser?.role === 'admin' || currentUser?.role === 'superintendent';
 
   // Material totals for the selected project — split into original vs add-on
   const originalMaterials = useMemo(() => materials.filter(m => !m.is_addon), [materials]);
@@ -1887,7 +1902,18 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                             <div className="text-xs font-bold uppercase tracking-widest text-dashboard-accent flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full bg-dashboard-accent" /> Original Materials
                             </div>
-                            <div className="text-[10px] opacity-60">{originalMaterials.length} item{originalMaterials.length !== 1 ? 's' : ''}</div>
+                            <div className="flex items-center gap-3">
+                              <div className="text-[10px] opacity-60">{originalMaterials.length} item{originalMaterials.length !== 1 ? 's' : ''}</div>
+                              {materials.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={handleClearAllMaterials}
+                                  className="text-[9px] font-bold uppercase tracking-wider text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2.5 py-1 rounded-lg border border-red-500/20 hover:border-red-500/40 transition-all"
+                                >
+                                  <Trash2 size={10} className="inline mr-1" />Clear All
+                                </button>
+                              )}
+                            </div>
                           </div>
                           <div className="p-4 space-y-3">
                             {/* Original Summary */}

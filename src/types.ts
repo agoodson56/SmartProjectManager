@@ -35,9 +35,9 @@ export interface Material {
 export interface User {
   id: number;
   username: string;
-  role: 'admin' | 'manager';
+  role: 'admin' | 'manager' | 'superintendent';
   must_change_password: boolean;
 }
 
-export const MANAGERS = ['Cos', 'Brett', 'Kurt', 'Richard', 'Daniel', 'Kyle', 'Eric', 'DanielR'] as const;
+export const MANAGERS = ['Cos', 'Brett', 'Kurt', 'Richard', 'Daniel', 'Kyle', 'Eric'] as const;
 export type Manager = typeof MANAGERS[number];

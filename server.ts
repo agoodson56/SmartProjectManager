@@ -109,10 +109,9 @@ if (userCount.count === 0) {
   insertUser.run("Brett", defaultHash, "manager");
   insertUser.run("Kurt", defaultHash, "manager");
   insertUser.run("Richard", defaultHash, "manager");
-  insertUser.run("Daniel", defaultHash, "manager");
-  insertUser.run("Kyle", defaultHash, "manager");
-  insertUser.run("Eric", defaultHash, "manager");
-  insertUser.run("DanielR", defaultHash, "manager");
+  insertUser.run("Daniel", defaultHash, "superintendent");
+  insertUser.run("Kyle", defaultHash, "superintendent");
+  insertUser.run("Eric", defaultHash, "superintendent");
 }
 // Ensure Daniel exists (migration for existing DBs)
 try {
