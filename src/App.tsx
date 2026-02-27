@@ -32,21 +32,25 @@ export default function App() {
   // Auth state
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authToken, setAuthToken] = useState<string | null>(() => localStorage.getItem('spm_token'));
-  const [authScreen, setAuthScreen] = useState<'login' | 'change-password' | 'app'>('login');
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
+  const [pendingAction, setPendingAction] = useState<'pm-portal' | 'download' | 'edit-project' | null>(null);
+  const [pendingProject, setPendingProject] = useState<Project | null>(null);
 
   // App state
   const [projects, setProjects] = useState<Project[]>([]);
   const [view, setView] = useState<'dashboard' | 'input'>('dashboard');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [editMode, setEditMode] = useState<'progress' | 'details' | 'materials'>('progress');
+  const [editMode, setEditMode] = useState<'materials' | 'details'>('materials');
+  const [createStep, setCreateStep] = useState<1 | 2>(1);
+  const [wizardMaterials, setWizardMaterials] = useState<{ name: string; quantity: number; labor_hours_per_unit: number; selected: boolean }[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
 
   // Material state
@@ -54,18 +58,17 @@ export default function App() {
   const [matName, setMatName] = useState('');
   const [matQty, setMatQty] = useState('');
   const [matLaborPerUnit, setMatLaborPerUnit] = useState('');
-  const [matCost, setMatCost] = useState('');
+
   const [loadingMaterials, setLoadingMaterials] = useState(false);
   const [csvPreview, setCsvPreview] = useState<{ name: string; quantity: number; labor_hours_per_unit: number }[]>([]);
   const [csvUploading, setCsvUploading] = useState(false);
   const [logMaterialId, setLogMaterialId] = useState<number | null>(null);
   const [logQty, setLogQty] = useState('');
   const [logHours, setLogHours] = useState('');
-  const [logCost, setLogCost] = useState('');
-  const [editingCostId, setEditingCostId] = useState<number | null>(null);
+
 
   // Proposal upload state
-  const [proposalMaterials, setProposalMaterials] = useState<{ name: string; quantity: number; labor_hours_per_unit: number; unit_cost: number; selected: boolean }[]>([]);
+  const [proposalMaterials, setProposalMaterials] = useState<{ name: string; quantity: number; labor_hours_per_unit: number; selected: boolean }[]>([]);
   const [proposalLoading, setProposalLoading] = useState(false);
   const [proposalError, setProposalError] = useState('');
   const [proposalAsAddon, setProposalAsAddon] = useState(false);
@@ -115,7 +118,7 @@ export default function App() {
     ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
   }), [authToken]);
 
-  // Fetch projects with auth
+  // Fetch projects with auth (for PM Portal — manager-filtered)
   const fetchProjects = useCallback(async (token: string) => {
     try {
       const res = await fetch('/api/projects', {
@@ -127,6 +130,19 @@ export default function App() {
       }
     } catch (err) {
       console.error('Failed to fetch projects', err);
+    }
+  }, []);
+
+  // Fetch projects publicly (no auth — for dashboard view)
+  const fetchPublicProjects = useCallback(async () => {
+    try {
+      const res = await fetch('/api/public-projects');
+      if (res.ok) {
+        const data = await res.json();
+        setProjects(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch public projects', err);
     }
   }, []);
 
@@ -148,26 +164,27 @@ export default function App() {
     }
   }, []);
 
-  // Check existing session on load
+  // Load public projects immediately + restore session if token exists
   useEffect(() => {
+    // Always load public dashboard data
+    fetchPublicProjects();
+
+    // Try to restore existing session
     const checkSession = async () => {
       const token = localStorage.getItem('spm_token');
-      if (!token) {
-        setCheckingSession(false);
-        return;
-      }
+      if (!token) return;
       try {
         const res = await fetch('/api/me', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (res.ok) {
-          const data = await res.json();
+          const data = await res.json() as any;
           setCurrentUser(data.user);
           setAuthToken(token);
           if (data.user.must_change_password) {
-            setAuthScreen('change-password');
+            setShowChangePassword(true);
           } else {
-            setAuthScreen('app');
+            // Re-fetch with auth for manager-filtered view
             fetchProjects(token);
           }
         } else {
@@ -178,17 +195,21 @@ export default function App() {
         localStorage.removeItem('spm_token');
         setAuthToken(null);
       }
-      setCheckingSession(false);
     };
     checkSession();
-  }, [fetchProjects]);
+  }, [fetchProjects, fetchPublicProjects]);
 
-  // Refresh projects periodically (replaces Socket.IO for Cloudflare)
+  // Refresh projects periodically
   useEffect(() => {
-    if (authScreen !== 'app' || !authToken) return;
-    const interval = setInterval(() => fetchProjects(authToken), 30000);
+    const interval = setInterval(() => {
+      if (authToken) {
+        fetchProjects(authToken);
+      } else {
+        fetchPublicProjects();
+      }
+    }, 30000);
     return () => clearInterval(interval);
-  }, [authScreen, authToken, fetchProjects]);
+  }, [authToken, fetchProjects, fetchPublicProjects]);
 
   // Auto-cycle dashboard pages every 30 seconds
   useEffect(() => {
@@ -218,6 +239,14 @@ export default function App() {
     setCycleProgress(0);
   }, [projects.length]);
 
+  // Require login — shows the login modal and remembers what the user wanted to do
+  const requireLogin = (action: 'pm-portal' | 'download' | 'edit-project', project?: Project) => {
+    setPendingAction(action);
+    if (project) setPendingProject(project);
+    setShowLoginModal(true);
+    setAuthError('');
+  };
+
   // Handle login
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -229,7 +258,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: loginUsername, password: loginPassword }),
       });
-      const data = await res.json();
+      const data = await res.json() as any;
       if (!res.ok) {
         setAuthError(data.error || 'Login failed');
         return;
@@ -237,11 +266,35 @@ export default function App() {
       setAuthToken(data.token);
       setCurrentUser(data.user);
       localStorage.setItem('spm_token', data.token);
+      setShowLoginModal(false);
       if (data.user.must_change_password) {
-        setAuthScreen('change-password');
+        setShowChangePassword(true);
       } else {
-        setAuthScreen('app');
         fetchProjects(data.token);
+        // Execute the pending action after login
+        if (pendingAction === 'pm-portal') {
+          setView('input');
+        } else if (pendingAction === 'download') {
+          // Delay slightly so projects load first
+          setTimeout(() => handleDownloadReport(), 500);
+        } else if (pendingAction === 'edit-project' && pendingProject) {
+          setView('input');
+          setSelectedProject(pendingProject);
+          setUsedLabor(pendingProject.used_labor_hours.toString());
+          setUsedOdc(pendingProject.used_odc.toString());
+          setAddLabor('');
+          setAddOdc('');
+          setName(pendingProject.name);
+          setManager(pendingProject.manager as Manager);
+          setLeadName(pendingProject.lead_name || '');
+          setEstLabor(pendingProject.est_labor_hours.toString());
+          setEstOdc(pendingProject.est_odc.toString());
+          setDeadline(pendingProject.deadline ? pendingProject.deadline.split('T')[0] : '');
+          setEditMode('progress');
+          fetchMaterials(pendingProject.id, data.token);
+        }
+        setPendingAction(null);
+        setPendingProject(null);
       }
     } catch {
       setAuthError('Network error. Please try again.');
@@ -270,13 +323,13 @@ export default function App() {
         headers: authHeaders(),
         body: JSON.stringify({ newPassword }),
       });
-      const data = await res.json();
+      const data = await res.json() as any;
       if (!res.ok) {
         setAuthError(data.error || 'Failed to change password');
         return;
       }
       setCurrentUser(data.user);
-      setAuthScreen('app');
+      setShowChangePassword(false);
       setNewPassword('');
       setConfirmPassword('');
       fetchProjects(authToken!);
@@ -298,17 +351,25 @@ export default function App() {
     localStorage.removeItem('spm_token');
     setAuthToken(null);
     setCurrentUser(null);
-    setProjects([]);
     setSelectedProject(null);
-    setAuthScreen('login');
+    setView('dashboard');
     setLoginUsername('');
     setLoginPassword('');
+    // Reload public projects
+    fetchPublicProjects();
   };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (createStep === 1) {
+      // Move to step 2 for material upload
+      setCreateStep(2);
+      return;
+    }
+    // Step 2: Create project with materials
     setIsUpdating(true);
     try {
+      const selectedMats = wizardMaterials.filter(m => m.selected && m.name);
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: authHeaders(),
@@ -316,14 +377,21 @@ export default function App() {
           name,
           manager,
           lead_name: leadName,
-          est_labor_hours: parseFloat(estLabor) || 0,
           est_material_cost: 0,
           est_odc: parseFloat(estOdc) || 0,
           deadline: deadline || null,
+          materials: selectedMats.map(m => ({
+            name: m.name,
+            quantity: m.quantity,
+            labor_hours_per_unit: m.labor_hours_per_unit,
+            is_addon: false,
+          })),
         }),
       });
       if (res.ok) {
         setIsCreating(false);
+        setCreateStep(1);
+        setWizardMaterials([]);
         fetchProjects(authToken!);
         setName('');
         setManager('Cos');
@@ -336,7 +404,7 @@ export default function App() {
         try {
           const contentType = res.headers.get("content-type");
           if (contentType && contentType.includes("application/json")) {
-            const errorData = await res.json();
+            const errorData = await res.json() as any;
             errorMessage = errorData.error || errorMessage;
           } else {
             errorMessage = `Server error: ${res.status} ${res.statusText}`;
@@ -361,22 +429,7 @@ export default function App() {
     setIsUpdating(true);
     try {
       let payload;
-      if (editMode === 'progress') {
-        const currentLabor = selectedProject.used_labor_hours;
-
-        const laborToAdd = parseFloat(addLabor) || 0;
-        const odcToAdd = parseFloat(addOdc) || 0;
-
-        // If they used the "New Total" fields, use those. Otherwise, add the incremental values.
-        const finalLabor = usedLabor !== currentLabor.toString() ? (parseFloat(usedLabor) || 0) : currentLabor + laborToAdd;
-        const currentOdc = selectedProject.used_odc;
-        const finalOdc = usedOdc !== currentOdc.toString() ? (parseFloat(usedOdc) || 0) : currentOdc + odcToAdd;
-
-        payload = {
-          used_labor_hours: finalLabor,
-          used_odc: finalOdc,
-        };
-      } else {
+      if (editMode === 'details') {
         payload = {
           name,
           manager,
@@ -384,6 +437,14 @@ export default function App() {
           est_labor_hours: parseFloat(estLabor) || 0,
           est_odc: parseFloat(estOdc) || 0,
           deadline: deadline || null,
+        };
+      } else {
+        // ODC update only
+        const odcToAdd = parseFloat(addOdc) || 0;
+        const currentOdc = selectedProject.used_odc;
+        const finalOdc = usedOdc !== currentOdc.toString() ? (parseFloat(usedOdc) || 0) : currentOdc + odcToAdd;
+        payload = {
+          used_odc: finalOdc,
         };
       }
 
@@ -395,9 +456,7 @@ export default function App() {
       if (res.ok) {
         setSelectedProject(null);
         fetchProjects(authToken!);
-        setUsedLabor('');
         setUsedOdc('');
-        setAddLabor('');
         setAddOdc('');
         setName('');
         setLeadName('');
@@ -408,7 +467,7 @@ export default function App() {
         try {
           const contentType = res.headers.get("content-type");
           if (contentType && contentType.includes("application/json")) {
-            const errorData = await res.json();
+            const errorData = await res.json() as any;
             errorMessage = errorData.error || errorMessage;
           } else {
             errorMessage = `Server error: ${res.status} ${res.statusText}`;
@@ -448,7 +507,6 @@ export default function App() {
           name: matName,
           quantity: parseFloat(matQty) || 0,
           labor_hours_per_unit: parseFloat(matLaborPerUnit) || 0,
-          unit_cost: parseFloat(matCost) || 0,
           is_addon: isAddon,
         }),
       });
@@ -456,10 +514,10 @@ export default function App() {
         setMatName('');
         setMatQty('');
         setMatLaborPerUnit('');
-        setMatCost('');
         fetchMaterials(selectedProject.id, authToken!);
+        fetchProjects(authToken!);
       } else {
-        const err = await res.json();
+        const err = await res.json() as any;
         alert(err.error || 'Failed to add material');
       }
     } catch (err) {
@@ -471,14 +529,9 @@ export default function App() {
     if (!selectedProject) return;
     const addQty = parseFloat(logQty) || 0;
     const addHours = parseFloat(logHours) || 0;
-    const costVal = parseFloat(logCost);
-    const hasCostChange = !isNaN(costVal);
-    if (addQty <= 0 && addHours <= 0 && !hasCostChange) return;
+    if (addQty <= 0 && addHours <= 0) return;
     try {
       const body: any = { add_qty: addQty, add_hours: addHours };
-      if (hasCostChange) {
-        body.unit_cost = costVal;
-      }
       const res = await fetch(`/api/projects/${selectedProject.id}/materials/${materialId}`, {
         method: 'PUT',
         headers: authHeaders(),
@@ -488,7 +541,6 @@ export default function App() {
         setLogMaterialId(null);
         setLogQty('');
         setLogHours('');
-        setLogCost('');
         fetchMaterials(selectedProject.id, authToken!);
         fetchProjects(authToken!);
       }
@@ -525,21 +577,7 @@ export default function App() {
     }
   };
 
-  // --- Edit material cost inline ---
-  const handleUpdateMaterialCost = async (materialId: number, newCost: number) => {
-    if (!selectedProject) return;
-    try {
-      await fetch(`/api/projects/${selectedProject.id}/materials/${materialId}`, {
-        method: 'PATCH',
-        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ unit_cost: newCost }),
-      });
-      fetchMaterials(selectedProject.id, authToken!);
-    } catch (err) {
-      console.error('Failed to update material cost', err);
-    }
-    setEditingCostId(null);
-  };
+
 
   // --- Proposal Upload & AI Extraction ---
   const handleProposalUpload = async (file: File) => {
@@ -915,175 +953,8 @@ If you truly cannot find ANY materials in the document, return an empty array: [
     XLSX.writeFile(wb, `3D_Project_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  // Loading screen while checking session
-  if (checkingSession) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-2 border-dashboard-accent border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs uppercase tracking-widest opacity-50">Loading...</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Login Screen
-  if (authScreen === 'login') {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-md"
-        >
-          <div className="text-center mb-8">
-            <img
-              src="/logo.png"
-              alt="3D Smart Project Manager"
-              className="h-20 w-auto mx-auto mb-6 drop-shadow-[0_2px_12px_rgba(212,175,55,0.4)]"
-            />
-            <h1 className="text-2xl font-bold tracking-tight mb-1">Welcome Back</h1>
-            <p className="text-sm opacity-50">Sign in to your project dashboard</p>
-          </div>
-
-          <form onSubmit={handleLogin} className="bg-white/5 border border-dashboard-line rounded-2xl p-8 space-y-6 backdrop-blur-sm">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest">Username</label>
-              <select
-                value={loginUsername}
-                onChange={(e) => setLoginUsername(e.target.value)}
-                className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 focus:border-dashboard-accent outline-none transition-colors"
-                required
-              >
-                <option value="">Select your name...</option>
-                <option value="Allan">Allan (Admin)</option>
-                {MANAGERS.map(m => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest">Password</label>
-              <div className="relative">
-                <input
-                  type="password"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 pr-10 focus:border-dashboard-accent outline-none transition-colors"
-                  required
-                />
-                <Lock size={14} className="absolute right-4 top-1/2 -translate-y-1/2 opacity-30" />
-              </div>
-            </div>
-
-            {authError && (
-              <motion.div
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2"
-              >
-                {authError}
-              </motion.div>
-            )}
-
-            <button
-              type="submit"
-              disabled={authLoading}
-              className="w-full bg-dashboard-accent text-black font-bold py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm uppercase tracking-wider"
-            >
-              {authLoading ? (
-                <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  <KeyRound size={16} />
-                  Sign In
-                </>
-              )}
-            </button>
-          </form>
-
-          <p className="text-center text-[9px] uppercase tracking-widest opacity-30 mt-6">
-            3D Smart Project Manager • Secure Access
-          </p>
-        </motion.div>
-      </div>
-    );
-  }
-
-  // Change Password Screen
-  if (authScreen === 'change-password') {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-md"
-        >
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-full bg-dashboard-accent/20 border-2 border-dashboard-accent/50 flex items-center justify-center mx-auto mb-4">
-              <KeyRound size={28} className="text-dashboard-accent" />
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight mb-1">Set Your Password</h1>
-            <p className="text-sm opacity-50">
-              Welcome, <span className="text-dashboard-accent font-semibold">{currentUser?.username}</span>! Please create a unique password.
-            </p>
-          </div>
-
-          <form onSubmit={handleChangePassword} className="bg-white/5 border border-dashboard-line rounded-2xl p-8 space-y-6 backdrop-blur-sm">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest">New Password</label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Choose a new password"
-                className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 focus:border-dashboard-accent outline-none transition-colors"
-                required
-                minLength={4}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest">Confirm Password</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Re-enter your password"
-                className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 focus:border-dashboard-accent outline-none transition-colors"
-                required
-                minLength={4}
-              />
-            </div>
-
-            {authError && (
-              <motion.div
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2"
-              >
-                {authError}
-              </motion.div>
-            )}
-
-            <button
-              type="submit"
-              disabled={authLoading}
-              className="w-full bg-dashboard-accent text-black font-bold py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm uppercase tracking-wider"
-            >
-              {authLoading ? (
-                <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-              ) : (
-                'Set Password & Continue'
-              )}
-            </button>
-          </form>
-        </motion.div>
-      </div>
-    );
-  }
+  // isLoggedIn helper
+  const isLoggedIn = !!authToken && !!currentUser;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -1097,7 +968,7 @@ If you truly cannot find ANY materials in the document, return an empty array: [
 
         <nav className="flex items-center gap-4">
           <button
-            onClick={handleDownloadReport}
+            onClick={() => isLoggedIn ? handleDownloadReport() : requireLogin('download')}
             className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition-all"
           >
             <Download size={14} />
@@ -1115,7 +986,7 @@ If you truly cannot find ANY materials in the document, return an empty array: [
               Dashboard
             </button>
             <button
-              onClick={() => setView('input')}
+              onClick={() => isLoggedIn ? setView('input') : requireLogin('pm-portal')}
               className={cn(
                 "px-4 py-2 rounded-md text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2",
                 view === 'input' ? "bg-dashboard-accent text-black" : "hover:bg-white/5"
@@ -1126,21 +997,31 @@ If you truly cannot find ANY materials in the document, return an empty array: [
             </button>
           </div>
           <div className="h-6 w-px bg-white/10" />
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <div className="text-xs font-bold">{currentUser?.username}</div>
-              <div className="text-[9px] uppercase tracking-widest opacity-50">
-                {currentUser?.role === 'admin' ? 'Administrator' : 'Project Manager'}
+          {isLoggedIn ? (
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <div className="text-xs font-bold">{currentUser?.username}</div>
+                <div className="text-[9px] uppercase tracking-widest opacity-50">
+                  {currentUser?.role === 'admin' ? 'Administrator' : 'Project Manager'}
+                </div>
               </div>
+              <button
+                onClick={handleLogout}
+                className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-red-500/20 hover:border-red-500/30 hover:text-red-400 transition-all"
+                title="Sign Out"
+              >
+                <LogOut size={14} />
+              </button>
             </div>
+          ) : (
             <button
-              onClick={handleLogout}
-              className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-red-500/20 hover:border-red-500/30 hover:text-red-400 transition-all"
-              title="Sign Out"
+              onClick={() => { setPendingAction(null); setShowLoginModal(true); setAuthError(''); }}
+              className="flex items-center gap-2 px-4 py-2 bg-dashboard-accent text-black rounded-lg text-xs font-bold uppercase tracking-wider hover:scale-105 transition-transform"
             >
-              <LogOut size={14} />
+              <KeyRound size={14} />
+              Sign In
             </button>
-          </div>
+          )}
         </nav>
       </header>
 
@@ -1428,6 +1309,10 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => {
+                            if (!isLoggedIn) {
+                              requireLogin('edit-project', project);
+                              return;
+                            }
                             setView('input');
                             setSelectedProject(project);
                             setUsedLabor(project.used_labor_hours.toString());
@@ -2496,6 +2381,186 @@ If you truly cannot find ANY materials in the document, return an empty array: [
           Last Update: {new Date().toLocaleTimeString()}
         </div>
       </footer>
+
+      {/* Login Modal Overlay */}
+      <AnimatePresence>
+        {showLoginModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-6"
+            onClick={(e) => { if (e.target === e.currentTarget) { setShowLoginModal(false); setPendingAction(null); setPendingProject(null); } }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md"
+            >
+              <div className="text-center mb-8">
+                <img
+                  src="/logo.png"
+                  alt="3D Smart Project Manager"
+                  className="h-20 w-auto mx-auto mb-6 drop-shadow-[0_2px_12px_rgba(212,175,55,0.4)]"
+                />
+                <h1 className="text-2xl font-bold tracking-tight mb-1">Sign In Required</h1>
+                <p className="text-sm opacity-50">
+                  {pendingAction === 'pm-portal' && 'Sign in to access the PM Portal'}
+                  {pendingAction === 'download' && 'Sign in to download a report'}
+                  {pendingAction === 'edit-project' && 'Sign in to edit project details'}
+                  {!pendingAction && 'Sign in to your project dashboard'}
+                </p>
+              </div>
+
+              <form onSubmit={handleLogin} className="bg-dashboard-bg border border-dashboard-line rounded-2xl p-8 space-y-6 backdrop-blur-sm">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest">Username</label>
+                  <select
+                    value={loginUsername}
+                    onChange={(e) => setLoginUsername(e.target.value)}
+                    className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 focus:border-dashboard-accent outline-none transition-colors"
+                    required
+                  >
+                    <option value="">Select your name...</option>
+                    <option value="Allan">Allan (Admin)</option>
+                    {MANAGERS.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest">Password</label>
+                  <div className="relative">
+                    <input
+                      type="password"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 pr-10 focus:border-dashboard-accent outline-none transition-colors"
+                      required
+                    />
+                    <Lock size={14} className="absolute right-4 top-1/2 -translate-y-1/2 opacity-30" />
+                  </div>
+                </div>
+
+                {authError && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2"
+                  >
+                    {authError}
+                  </motion.div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={authLoading}
+                  className="w-full bg-dashboard-accent text-black font-bold py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm uppercase tracking-wider"
+                >
+                  {authLoading ? (
+                    <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <KeyRound size={16} />
+                      Sign In
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setShowLoginModal(false); setPendingAction(null); setPendingProject(null); setAuthError(''); }}
+                  className="w-full text-center text-sm opacity-50 hover:opacity-100 transition-opacity"
+                >
+                  Cancel
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Change Password Modal Overlay */}
+      <AnimatePresence>
+        {showChangePassword && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-6"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md"
+            >
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 rounded-full bg-dashboard-accent/20 border-2 border-dashboard-accent/50 flex items-center justify-center mx-auto mb-4">
+                  <KeyRound size={28} className="text-dashboard-accent" />
+                </div>
+                <h1 className="text-2xl font-bold tracking-tight mb-1">Set Your Password</h1>
+                <p className="text-sm opacity-50">
+                  Welcome, <span className="text-dashboard-accent font-semibold">{currentUser?.username}</span>! Please create a unique password.
+                </p>
+              </div>
+
+              <form onSubmit={handleChangePassword} className="bg-dashboard-bg border border-dashboard-line rounded-2xl p-8 space-y-6 backdrop-blur-sm">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest">New Password</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Choose a new password"
+                    className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 focus:border-dashboard-accent outline-none transition-colors"
+                    required
+                    minLength={4}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest">Confirm Password</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter your password"
+                    className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 focus:border-dashboard-accent outline-none transition-colors"
+                    required
+                    minLength={4}
+                  />
+                </div>
+
+                {authError && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2"
+                  >
+                    {authError}
+                  </motion.div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={authLoading}
+                  className="w-full bg-dashboard-accent text-black font-bold py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm uppercase tracking-wider"
+                >
+                  {authLoading ? (
+                    <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    'Set Password & Continue'
+                  )}
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div >
   );
 }
