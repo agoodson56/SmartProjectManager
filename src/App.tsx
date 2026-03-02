@@ -55,7 +55,7 @@ export default function App() {
   const [view, setView] = useState<'dashboard' | 'input'>('dashboard');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [editMode, setEditMode] = useState<'materials' | 'details'>('materials');
+  const [editMode, setEditMode] = useState<'materials' | 'details' | 'progress'>('materials');
   const [createStep, setCreateStep] = useState<1 | 2>(1);
   const [wizardMaterials, setWizardMaterials] = useState<{ name: string; quantity: number; labor_hours_per_unit: number; selected: boolean }[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -72,6 +72,9 @@ export default function App() {
   const [logMaterialId, setLogMaterialId] = useState<number | null>(null);
   const [logQty, setLogQty] = useState('');
   const [logHours, setLogHours] = useState('');
+  const [matCost, setMatCost] = useState('');
+  const [logCost, setLogCost] = useState('');
+  const [editingCostId, setEditingCostId] = useState<number | null>(null);
 
 
   // Proposal upload state
