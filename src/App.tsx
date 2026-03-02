@@ -1668,833 +1668,843 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                     ))}
                   </div>
                 ) : (
-                  <form onSubmit={handleUpdate} className="space-y-6">
-                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/20">
-                      <div>
-                        <h3 className="text-xl font-bold">{selectedProject.name}</h3>
-                        <p className="text-xs uppercase tracking-widest">Managing as {selectedProject.manager}</p>
+                  <>
+                    <form onSubmit={handleUpdate} className="space-y-6">
+                      <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/20">
+                        <div>
+                          <h3 className="text-xl font-bold">{selectedProject.name}</h3>
+                          <p className="text-xs uppercase tracking-widest">Managing as {selectedProject.manager}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedProject(null)}
+                          className="flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-white/20 transition-all"
+                        >
+                          <ArrowLeft size={14} />
+                          Back to List
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedProject(null)}
-                        className="flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-white/20 transition-all"
-                      >
-                        <ArrowLeft size={14} />
-                        Back to List
-                      </button>
-                    </div>
 
-                    {/* Mode Toggle */}
-                    <div className="flex p-1 bg-black/40 rounded-lg border border-white/20 mb-6">
-                      <button
-                        type="button"
-                        onClick={() => setEditMode('progress')}
-                        className={cn(
-                          "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all",
-                          editMode === 'progress' ? "bg-white/20 text-white" : "text-white/60 hover:text-white"
-                        )}
-                      >
-                        Update Progress
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditMode('materials')}
-                        className={cn(
-                          "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all flex items-center justify-center gap-1.5",
-                          editMode === 'materials' ? "bg-white/20 text-white" : "text-white/60 hover:text-white"
-                        )}
-                      >
-                        <Boxes size={12} />
-                        Materials
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditMode('details')}
-                        className={cn(
-                          "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all",
-                          editMode === 'details' ? "bg-white/20 text-white" : "text-white/60 hover:text-white"
-                        )}
-                      >
-                        Edit Estimates
-                      </button>
-                    </div>
+                      {/* Mode Toggle */}
+                      <div className="flex p-1 bg-black/40 rounded-lg border border-white/20 mb-6">
+                        <button
+                          type="button"
+                          onClick={() => setEditMode('progress')}
+                          className={cn(
+                            "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all",
+                            editMode === 'progress' ? "bg-white/20 text-white" : "text-white/60 hover:text-white"
+                          )}
+                        >
+                          Update Progress
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditMode('materials')}
+                          className={cn(
+                            "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all flex items-center justify-center gap-1.5",
+                            editMode === 'materials' ? "bg-white/20 text-white" : "text-white/60 hover:text-white"
+                          )}
+                        >
+                          <Boxes size={12} />
+                          Materials
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditMode('details')}
+                          className={cn(
+                            "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all",
+                            editMode === 'details' ? "bg-white/20 text-white" : "text-white/60 hover:text-white"
+                          )}
+                        >
+                          Edit Estimates
+                        </button>
+                      </div>
 
-                    {editMode === 'progress' ? (
-                      <div className="space-y-6">
-                        <div className="grid grid-cols-2 gap-6">
+                      {editMode === 'progress' ? (
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <label className="text-[10px] font-bold uppercase tracking-widest">Add Labor Hours</label>
+                                <div className="relative">
+                                  <PlusCircle className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-dashboard-accent" />
+                                  <input
+                                    type="number"
+                                    step="0.1"
+                                    value={addLabor}
+                                    onChange={(e) => setAddLabor(e.target.value)}
+                                    className="w-full bg-dashboard-accent/10 border border-dashboard-accent/30 rounded-xl py-4 pl-12 pr-4 focus:border-dashboard-accent outline-none transition-colors text-lg font-bold"
+                                    placeholder="+0.0"
+                                  />
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-[10px] font-bold uppercase tracking-widest">Current Total Hours</label>
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  value={usedLabor}
+                                  onChange={(e) => setUsedLabor(e.target.value)}
+                                  className="w-full bg-black/20 border border-white/20 rounded-xl py-2 px-4 focus:border-dashboard-accent outline-none transition-colors text-sm"
+                                />
+                              </div>
+                            </div>
+
+
+                          </div>
+
                           <div className="space-y-4">
                             <div className="space-y-2">
-                              <label className="text-[10px] font-bold uppercase tracking-widest">Add Labor Hours</label>
+                              <label className="text-[10px] font-bold uppercase tracking-widest">Add Other Direct Cost ($)</label>
                               <div className="relative">
                                 <PlusCircle className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-dashboard-accent" />
                                 <input
                                   type="number"
-                                  step="0.1"
-                                  value={addLabor}
-                                  onChange={(e) => setAddLabor(e.target.value)}
+                                  step="0.01"
+                                  value={addOdc}
+                                  onChange={(e) => setAddOdc(e.target.value)}
                                   className="w-full bg-dashboard-accent/10 border border-dashboard-accent/30 rounded-xl py-4 pl-12 pr-4 focus:border-dashboard-accent outline-none transition-colors text-lg font-bold"
-                                  placeholder="+0.0"
+                                  placeholder="+$0.00"
                                 />
                               </div>
                             </div>
                             <div className="space-y-2">
-                              <label className="text-[10px] font-bold uppercase tracking-widest">Current Total Hours</label>
+                              <label className="text-[10px] font-bold uppercase tracking-widest">Current Total Other Direct Cost</label>
                               <input
                                 type="number"
-                                step="0.1"
-                                value={usedLabor}
-                                onChange={(e) => setUsedLabor(e.target.value)}
+                                step="0.01"
+                                value={usedOdc}
+                                onChange={(e) => setUsedOdc(e.target.value)}
                                 className="w-full bg-black/20 border border-white/20 rounded-xl py-2 px-4 focus:border-dashboard-accent outline-none transition-colors text-sm"
                               />
                             </div>
                           </div>
-
-
-                        </div>
-
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest">Add Other Direct Cost ($)</label>
-                            <div className="relative">
-                              <PlusCircle className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-dashboard-accent" />
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={addOdc}
-                                onChange={(e) => setAddOdc(e.target.value)}
-                                className="w-full bg-dashboard-accent/10 border border-dashboard-accent/30 rounded-xl py-4 pl-12 pr-4 focus:border-dashboard-accent outline-none transition-colors text-lg font-bold"
-                                placeholder="+$0.00"
-                              />
+                          <div className="p-4 bg-white/5 rounded-xl border border-white/20 flex justify-between items-center">
+                            <div className="text-xs">
+                              Estimates: <span className="font-bold text-white">{selectedProject.est_labor_hours}h Labor</span> / <span className="font-bold text-white">${selectedProject.est_odc.toLocaleString()} Other Direct Cost</span>
                             </div>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest">Current Total Other Direct Cost</label>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={usedOdc}
-                              onChange={(e) => setUsedOdc(e.target.value)}
-                              className="w-full bg-black/20 border border-white/20 rounded-xl py-2 px-4 focus:border-dashboard-accent outline-none transition-colors text-sm"
-                            />
+                            <div className="text-xs">
+                              Current: <span className="font-bold text-white">{selectedProject.used_labor_hours}h Labor</span> / <span className="font-bold text-white">${selectedProject.used_odc.toLocaleString()} Other Direct Cost</span>
+                            </div>
                           </div>
                         </div>
-                        <div className="p-4 bg-white/5 rounded-xl border border-white/20 flex justify-between items-center">
-                          <div className="text-xs">
-                            Estimates: <span className="font-bold text-white">{selectedProject.est_labor_hours}h Labor</span> / <span className="font-bold text-white">${selectedProject.est_odc.toLocaleString()} Other Direct Cost</span>
-                          </div>
-                          <div className="text-xs">
-                            Current: <span className="font-bold text-white">{selectedProject.used_labor_hours}h Labor</span> / <span className="font-bold text-white">${selectedProject.used_odc.toLocaleString()} Other Direct Cost</span>
-                          </div>
-                        </div>
-                      </div>
-                    ) : editMode === 'materials' ? (
-                      <div className="space-y-6">
-                        {/* Combined Material Summary */}
-                        <div className={`grid ${showPricing ? 'grid-cols-4' : 'grid-cols-3'} gap-3`}>
-                          <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
-                            <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-1">All Materials</div>
-                            <div className="text-lg font-bold">{materialTotals.totalUsed.toLocaleString()} <span className="text-sm opacity-50">/ {materialTotals.totalQty.toLocaleString()}</span></div>
-                            <div className={cn("text-xs font-bold", materialTotals.totalRemaining < 0 ? "text-red-400" : "text-emerald-400")}>
-                              {materialTotals.totalRemaining.toLocaleString()} remaining
-                            </div>
-                          </div>
-                          <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
-                            <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-1">Est. Labor (All)</div>
-                            <div className="text-lg font-bold">{materialTotals.totalLaborEst.toLocaleString()} <span className="text-sm opacity-50">hrs</span></div>
-                          </div>
-                          <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
-                            <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-1">Actual Hours Worked</div>
-                            <div className="text-lg font-bold text-amber-400">{materialTotals.totalActualHours.toLocaleString()} <span className="text-sm opacity-50">hrs</span></div>
-                            <div className={cn("text-xs font-bold", (materialTotals.totalLaborEst - materialTotals.totalActualHours) < 0 ? "text-red-400" : "text-emerald-400")}>
-                              {(materialTotals.totalLaborEst - materialTotals.totalActualHours).toLocaleString()} remaining
-                            </div>
-                          </div>
-                          {showPricing && (
-                            <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3 text-center">
-                              <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-400/70 mb-1">Est. Material Cost</div>
-                              <div className="text-lg font-bold text-emerald-400">${materialTotals.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* ===== PROPOSAL UPLOAD PANEL ===== */}
-                        <div className="border border-violet-500/30 rounded-xl overflow-hidden">
-                          <div className="bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 px-4 py-3 flex items-center justify-between">
-                            <div className="text-xs font-bold uppercase tracking-widest text-violet-400 flex items-center gap-2">
-                              <Upload size={14} /> Upload Proposal — AI Extraction
-                            </div>
-                            {proposalMaterials.length > 0 && (
-                              <button type="button" onClick={() => { setProposalMaterials([]); setProposalError(''); }} className="text-[10px] opacity-60 hover:opacity-100 transition-opacity">Clear</button>
-                            )}
-                          </div>
-                          <div className="p-4 space-y-3">
-                            {proposalMaterials.length === 0 && !proposalLoading ? (
-                              // File upload zone
-                              <label className="flex flex-col items-center gap-3 py-8 cursor-pointer border-2 border-dashed border-violet-500/30 rounded-xl hover:bg-violet-500/5 hover:border-violet-500/50 transition-all">
-                                <div className="w-12 h-12 rounded-full bg-violet-500/10 flex items-center justify-center">
-                                  <Upload size={20} className="text-violet-400" />
-                                </div>
-                                <div className="text-center">
-                                  <div className="text-sm font-bold text-violet-400">Upload Any Document</div>
-                                  <div className="text-[10px] opacity-50 mt-1">Excel • PDF • Word • Images • CSV • Any file — AI will extract materials & labor hours</div>
-                                </div>
-                                <input
-                                  type="file"
-                                  className="hidden"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) handleProposalUpload(file);
-                                    e.target.value = '';
-                                  }}
-                                />
-                              </label>
-                            ) : proposalLoading ? (
-                              // Loading state
-                              <div className="flex flex-col items-center gap-3 py-8">
-                                <div className="w-10 h-10 border-3 border-violet-500/30 border-t-violet-400 rounded-full animate-spin" />
-                                <div className="text-sm text-violet-400 font-bold">Extracting materials with AI...</div>
-                                <div className="text-[10px] opacity-50">Analyzing document for materials, quantities, and labor hours</div>
+                      ) : editMode === 'materials' ? (
+                        <div className="space-y-6">
+                          {/* Combined Material Summary */}
+                          <div className={`grid ${showPricing ? 'grid-cols-4' : 'grid-cols-3'} gap-3`}>
+                            <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+                              <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-1">All Materials</div>
+                              <div className="text-lg font-bold">{materialTotals.totalUsed.toLocaleString()} <span className="text-sm opacity-50">/ {materialTotals.totalQty.toLocaleString()}</span></div>
+                              <div className={cn("text-xs font-bold", materialTotals.totalRemaining < 0 ? "text-red-400" : "text-emerald-400")}>
+                                {materialTotals.totalRemaining.toLocaleString()} remaining
                               </div>
-                            ) : (
-                              // Preview extracted materials
-                              <div className="space-y-3">
-                                <div className="flex items-center justify-between">
-                                  <div className="text-sm font-bold text-violet-400">{proposalMaterials.filter(m => m.selected).length} of {proposalMaterials.length} materials selected</div>
-                                  <div className="flex items-center gap-3">
-                                    <button type="button" onClick={() => setProposalMaterials(prev => prev.map(m => ({ ...m, selected: true })))} className="text-[9px] uppercase tracking-wider text-violet-400 hover:text-violet-300">Select All</button>
-                                    <button type="button" onClick={() => setProposalMaterials(prev => prev.map(m => ({ ...m, selected: false })))} className="text-[9px] uppercase tracking-wider opacity-50 hover:opacity-80">None</button>
-                                  </div>
-                                </div>
-
-                                <div className="max-h-64 overflow-y-auto space-y-1 rounded-lg">
-                                  <div className={`grid ${showPricing ? 'grid-cols-[auto_2fr_0.7fr_0.7fr_0.7fr]' : 'grid-cols-[auto_2fr_0.7fr_0.7fr]'} gap-2 px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest opacity-50 sticky top-0 bg-dashboard-bg`}>
-                                    <div></div>
-                                    <div>Material</div>
-                                    <div className="text-center">Qty</div>
-                                    <div className="text-center">Hrs/Unit</div>
-                                    {showPricing && <div className="text-center">Cost/Unit</div>}
-                                  </div>
-                                  {proposalMaterials.map((mat, idx) => (
-                                    <div key={idx} className={cn(`grid ${showPricing ? 'grid-cols-[auto_2fr_0.7fr_0.7fr_0.7fr]' : 'grid-cols-[auto_2fr_0.7fr_0.7fr]'} gap-2 px-3 py-2 rounded-lg items-center transition-all`, mat.selected ? "bg-violet-500/10 border border-violet-500/20" : "bg-white/5 border border-transparent opacity-50")}>
-                                      <input type="checkbox" checked={mat.selected} onChange={() => setProposalMaterials(prev => prev.map((m, i) => i === idx ? { ...m, selected: !m.selected } : m))} className="w-4 h-4 rounded accent-violet-500" />
-                                      <input type="text" value={mat.name} onChange={(e) => setProposalMaterials(prev => prev.map((m, i) => i === idx ? { ...m, name: e.target.value } : m))} className="bg-transparent border-b border-white/10 focus:border-violet-400 outline-none text-sm py-1" />
-                                      <input type="number" value={mat.quantity} onChange={(e) => setProposalMaterials(prev => prev.map((m, i) => i === idx ? { ...m, quantity: parseFloat(e.target.value) || 0 } : m))} className="bg-transparent border-b border-white/10 focus:border-violet-400 outline-none text-sm text-center py-1 w-full" min="0" step="1" />
-                                      <input type="number" value={mat.labor_hours_per_unit} onChange={(e) => setProposalMaterials(prev => prev.map((m, i) => i === idx ? { ...m, labor_hours_per_unit: parseFloat(e.target.value) || 0 } : m))} className="bg-transparent border-b border-white/10 focus:border-violet-400 outline-none text-sm text-center py-1 w-full" min="0" step="0.01" />
-                                      {showPricing && <input type="number" value={mat.unit_cost} onChange={(e) => setProposalMaterials(prev => prev.map((m, i) => i === idx ? { ...m, unit_cost: parseFloat(e.target.value) || 0 } : m))} className="bg-transparent border-b border-white/10 focus:border-violet-400 outline-none text-sm text-center py-1 w-full" min="0" step="0.01" />}
-                                    </div>
-                                  ))}
-                                </div>
-
-                                {/* Import as add-on toggle + import buttons */}
-                                <div className="flex items-center justify-between pt-2 border-t border-white/10">
-                                  <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" checked={proposalAsAddon} onChange={() => setProposalAsAddon(!proposalAsAddon)} className="w-4 h-4 rounded accent-amber-500" />
-                                    <span className={cn("text-xs font-bold uppercase tracking-wider", proposalAsAddon ? "text-amber-400" : "opacity-60")}>
-                                      {proposalAsAddon ? 'Import as Add-On / Change Order' : 'Import as Original Material'}
-                                    </span>
-                                  </label>
-                                  <div className="flex items-center gap-2">
-                                    <button type="button" onClick={() => { setProposalMaterials([]); setProposalError(''); }} className="px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition-all">
-                                      Cancel
-                                    </button>
-                                    <button type="button" onClick={handleProposalImport} disabled={proposalMaterials.filter(m => m.selected).length === 0 || proposalLoading} className="px-5 py-2 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-bold rounded-lg text-xs uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30 flex items-center gap-2">
-                                      <Download size={12} /> Import {proposalMaterials.filter(m => m.selected).length} Materials
-                                    </button>
-                                  </div>
-                                </div>
+                            </div>
+                            <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+                              <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-1">Est. Labor (All)</div>
+                              <div className="text-lg font-bold">{materialTotals.totalLaborEst.toLocaleString()} <span className="text-sm opacity-50">hrs</span></div>
+                            </div>
+                            <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+                              <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-1">Actual Hours Worked</div>
+                              <div className="text-lg font-bold text-amber-400">{materialTotals.totalActualHours.toLocaleString()} <span className="text-sm opacity-50">hrs</span></div>
+                              <div className={cn("text-xs font-bold", (materialTotals.totalLaborEst - materialTotals.totalActualHours) < 0 ? "text-red-400" : "text-emerald-400")}>
+                                {(materialTotals.totalLaborEst - materialTotals.totalActualHours).toLocaleString()} remaining
                               </div>
-                            )}
-
-                            {proposalError && (
-                              <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-sm text-red-400 flex items-center gap-2">
-                                <span className="text-red-500 font-bold">⚠</span> {proposalError}
+                            </div>
+                            {showPricing && (
+                              <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3 text-center">
+                                <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-400/70 mb-1">Est. Material Cost</div>
+                                <div className="text-lg font-bold text-emerald-400">${materialTotals.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                               </div>
                             )}
                           </div>
-                        </div>
 
-                        {/* ============ ORIGINAL MATERIALS SECTION ============ */}
-                        <div className="border border-dashboard-accent/30 rounded-xl overflow-hidden">
-                          <div className="bg-dashboard-accent/10 px-4 py-3 flex items-center justify-between">
-                            <div className="text-xs font-bold uppercase tracking-widest text-dashboard-accent flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full bg-dashboard-accent" /> Original Materials
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <div className="text-[10px] opacity-60">{originalMaterials.length} item{originalMaterials.length !== 1 ? 's' : ''}</div>
-                              {materials.length > 0 && (
-                                <button
-                                  type="button"
-                                  onClick={handleClearAllMaterials}
-                                  className="text-[9px] font-bold uppercase tracking-wider text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2.5 py-1 rounded-lg border border-red-500/20 hover:border-red-500/40 transition-all"
-                                >
-                                  <Trash2 size={10} className="inline mr-1" />Clear All
-                                </button>
+                          {/* ===== PROPOSAL UPLOAD PANEL ===== */}
+                          <div className="border border-violet-500/30 rounded-xl overflow-hidden">
+                            <div className="bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 px-4 py-3 flex items-center justify-between">
+                              <div className="text-xs font-bold uppercase tracking-widest text-violet-400 flex items-center gap-2">
+                                <Upload size={14} /> Upload Proposal — AI Extraction
+                              </div>
+                              {proposalMaterials.length > 0 && (
+                                <button type="button" onClick={() => { setProposalMaterials([]); setProposalError(''); }} className="text-[10px] opacity-60 hover:opacity-100 transition-opacity">Clear</button>
                               )}
                             </div>
-                          </div>
-                          <div className="p-4 space-y-3">
-                            {/* Original Summary */}
-                            {originalMaterials.length > 0 && (
-                              <div className="grid grid-cols-3 gap-2 text-xs">
-                                <div className="bg-white/5 rounded-lg p-2 text-center">
-                                  <div className="opacity-50 text-[9px] uppercase">Qty</div>
-                                  <div className="font-bold">{origTotals.totalUsed} / {origTotals.totalQty}</div>
-                                </div>
-                                <div className="bg-white/5 rounded-lg p-2 text-center">
-                                  <div className="opacity-50 text-[9px] uppercase">Labor Est</div>
-                                  <div className="font-bold">{origTotals.totalLaborEst.toLocaleString()}h</div>
-                                </div>
-                                <div className="bg-white/5 rounded-lg p-2 text-center">
-                                  <div className="opacity-50 text-[9px] uppercase">Actual</div>
-                                  <div className={cn("font-bold", origTotals.totalActualHours > origTotals.totalLaborEst ? "text-red-400" : "text-amber-400")}>
-                                    {origTotals.totalActualHours.toLocaleString()}h
+                            <div className="p-4 space-y-3">
+                              {proposalMaterials.length === 0 && !proposalLoading ? (
+                                // File upload zone
+                                <label className="flex flex-col items-center gap-3 py-8 cursor-pointer border-2 border-dashed border-violet-500/30 rounded-xl hover:bg-violet-500/5 hover:border-violet-500/50 transition-all">
+                                  <div className="w-12 h-12 rounded-full bg-violet-500/10 flex items-center justify-center">
+                                    <Upload size={20} className="text-violet-400" />
                                   </div>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Original Material List */}
-                            {loadingMaterials ? (
-                              <div className="text-center py-8 opacity-50">Loading materials...</div>
-                            ) : originalMaterials.length === 0 ? (
-                              <div className="text-center py-4 opacity-50 text-sm">No original materials added yet.</div>
-                            ) : (
-                              <div className="space-y-2">
-                                {/* Table Header */}
-                                <div className={`grid ${showPricing ? 'grid-cols-[2fr_0.6fr_0.6fr_0.6fr_0.6fr_0.7fr_0.9fr_0.8fr_auto]' : 'grid-cols-[2fr_0.6fr_0.6fr_0.6fr_0.9fr_0.8fr_auto]'} gap-2 px-3 py-2 text-[9px] font-bold uppercase tracking-widest opacity-60`}>
-                                  <div>Material</div>
-                                  <div className="text-center">Needed</div>
-                                  <div className="text-center">Installed</div>
-                                  <div className="text-center">Remaining</div>
-                                  {showPricing && <div className="text-center">$/Unit</div>}
-                                  {showPricing && <div className="text-center">Ext. Cost</div>}
-                                  <div className="text-center">Hours (Actual / Est)</div>
-                                  <div className="text-center">Action</div>
-                                  <div></div>
-                                </div>
-                                {originalMaterials.map(mat => {
-                                  const remaining = mat.quantity - mat.quantity_used;
-                                  const laborEst = mat.quantity * mat.labor_hours_per_unit;
-                                  const actualHrs = mat.actual_labor_hours || 0;
-                                  const progress = mat.quantity > 0 ? (mat.quantity_used / mat.quantity) * 100 : 0;
-                                  const isLogging = logMaterialId === mat.id;
-                                  const extCost = mat.quantity * (mat.unit_cost || 0);
-                                  return (
-                                    <div key={mat.id} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-                                      <div className={`grid ${showPricing ? 'grid-cols-[2fr_0.6fr_0.6fr_0.6fr_0.6fr_0.7fr_0.9fr_0.8fr_auto]' : 'grid-cols-[2fr_0.6fr_0.6fr_0.6fr_0.9fr_0.8fr_auto]'} gap-2 items-center px-3 py-3`}>
-                                        <div>
-                                          <div className="font-bold text-sm">{mat.name}</div>
-                                          <div className="text-[10px] opacity-50">{mat.labor_hours_per_unit}h per unit</div>
-                                          <div className="w-full h-1.5 bg-white/10 rounded-full mt-1.5 overflow-hidden">
-                                            <div className={cn("h-full rounded-full", progress > 100 ? "bg-red-500" : "bg-dashboard-accent")} style={{ width: `${Math.min(progress, 100)}%` }} />
-                                          </div>
-                                        </div>
-                                        <div className="text-center font-bold">{mat.quantity.toLocaleString()}</div>
-                                        <div className="text-center font-bold text-dashboard-accent">{mat.quantity_used.toLocaleString()}</div>
-                                        <div className={cn("text-center font-bold", remaining < 0 ? "text-red-400" : "text-emerald-400")}>
-                                          {remaining.toLocaleString()}
-                                        </div>
-                                        {showPricing && (
-                                          editingCostId === mat.id ? (
-                                            <input
-                                              type="number"
-                                              autoFocus
-                                              defaultValue={(mat.unit_cost || 0).toFixed(2)}
-                                              className="w-full bg-black/80 border-2 border-dashboard-accent rounded-lg px-2 py-1 text-center text-sm font-bold outline-none text-white"
-                                              min="0" step="0.01"
-                                              onBlur={(e) => handleUpdateMaterialCost(mat.id, parseFloat(e.target.value) || 0)}
-                                              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') setEditingCostId(null); }}
-                                            />
-                                          ) : (
-                                            <button
-                                              type="button"
-                                              className="w-full text-center text-sm font-bold px-2 py-1 rounded-lg border border-transparent hover:border-dashboard-accent/50 hover:bg-dashboard-accent/10 cursor-pointer transition-all group"
-                                              onClick={() => setEditingCostId(mat.id)}
-                                            >
-                                              ${(mat.unit_cost || 0).toFixed(2)} <span className="text-[9px] opacity-0 group-hover:opacity-60 transition-opacity">✏️</span>
-                                            </button>
-                                          )
-                                        )}
-                                        {showPricing && <div className="text-center text-sm font-bold text-emerald-400">${extCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>}
-                                        <div className="text-center text-sm">
-                                          <span className="font-bold text-amber-400">{actualHrs.toLocaleString()}h</span>
-                                          <span className="opacity-50"> / {laborEst.toLocaleString()}h</span>
-                                        </div>
-                                        <div className="text-center">
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              if (isLogging) {
-                                                setLogMaterialId(null);
-                                                setLogQty(''); setLogHours(''); setLogCost('');
-                                              } else {
-                                                setLogMaterialId(mat.id);
-                                                setLogQty(''); setLogHours('');
-                                                setLogCost((mat.unit_cost || 0).toString());
-                                              }
-                                            }}
-                                            className={cn(
-                                              "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
-                                              isLogging
-                                                ? "bg-white/10 text-white"
-                                                : "bg-dashboard-accent/20 text-dashboard-accent hover:bg-dashboard-accent/30"
-                                            )}
-                                          >
-                                            {isLogging ? 'Cancel' : '+ Log Install'}
-                                          </button>
-                                        </div>
-                                        <div className="text-center">
-                                          <button
-                                            type="button"
-                                            onClick={() => handleDeleteMaterial(mat.id)}
-                                            className="p-1.5 rounded-lg hover:bg-red-500/20 hover:text-red-400 transition-all opacity-40 hover:opacity-100"
-                                          >
-                                            <Trash2 size={14} />
-                                          </button>
-                                        </div>
-                                      </div>
-                                      {/* Expandable Log Install Form */}
-                                      {isLogging && (
-                                        <div className="px-3 pb-3 pt-1 bg-dashboard-accent/5 border-t border-dashboard-accent/20">
-                                          <div className="grid grid-cols-[1fr_1fr_auto] gap-3 items-end">
-                                            <div>
-                                              <label className="text-[9px] font-bold uppercase tracking-widest opacity-60 block mb-1">Qty Installed Today</label>
-                                              <input
-                                                type="number"
-                                                value={logQty}
-                                                onChange={(e) => setLogQty(e.target.value)}
-                                                placeholder="e.g. 50"
-                                                className="w-full bg-black/40 border border-white/20 rounded-lg py-2 px-3 text-sm font-bold focus:border-dashboard-accent outline-none"
-                                                min="0"
-                                                step="1"
-                                                autoFocus
-                                              />
-                                            </div>
-                                            <div>
-                                              <label className="text-[9px] font-bold uppercase tracking-widest opacity-60 block mb-1">Hours Worked</label>
-                                              <input
-                                                type="number"
-                                                value={logHours}
-                                                onChange={(e) => setLogHours(e.target.value)}
-                                                placeholder="e.g. 4"
-                                                className="w-full bg-black/40 border border-white/20 rounded-lg py-2 px-3 text-sm font-bold focus:border-dashboard-accent outline-none"
-                                                min="0"
-                                                step="0.25"
-                                              />
-                                            </div>
-                                            <button
-                                              type="button"
-                                              onClick={() => handleLogInstall(mat.id)}
-                                              disabled={(!logQty || parseFloat(logQty) <= 0) && (!logHours || parseFloat(logHours) <= 0) && !(showPricing && logCost && parseFloat(logCost) !== (mat.unit_cost || 0))}
-                                              className="bg-dashboard-accent text-black font-bold py-2 px-5 rounded-lg text-xs uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30"
-                                            >
-                                              Submit
-                                            </button>
-                                          </div>
-                                          {showPricing && (
-                                            <div className="mt-3 pt-3 border-t border-white/10">
-                                              <label className="text-[9px] font-bold uppercase tracking-widest opacity-60 block mb-1">💰 Unit Cost ($)</label>
-                                              <input
-                                                type="number"
-                                                value={logCost}
-                                                onChange={(e) => setLogCost(e.target.value)}
-                                                placeholder="e.g. 25.00"
-                                                className="w-full bg-black/40 border border-emerald-500/40 rounded-lg py-2 px-3 text-sm font-bold text-emerald-400 focus:border-emerald-400 outline-none"
-                                                min="0"
-                                                step="0.01"
-                                              />
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-
-                            {/* Upload CSV */}
-                            <div className="bg-white/5 border border-dashed border-white/20 rounded-xl p-4 space-y-3">
-                              <div className="flex items-center justify-between">
-                                <div className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
-                                  <FileSpreadsheet size={12} className="text-dashboard-accent" />
-                                  Import from CSV
-                                </div>
-                                <span className="text-[9px] opacity-40">Columns: Material, Quantity, Labor Hrs/Unit</span>
-                              </div>
-                              {csvPreview.length > 0 ? (
-                                <div className="space-y-2">
-                                  <div className="text-xs font-bold text-dashboard-accent">{csvPreview.length} materials ready to import:</div>
-                                  <div className="max-h-40 overflow-y-auto space-y-1">
-                                    {csvPreview.map((row, i) => (
-                                      <div key={i} className="grid grid-cols-3 gap-2 text-xs bg-black/20 rounded-lg px-3 py-1.5">
-                                        <span className="font-bold truncate">{row.name}</span>
-                                        <span className="text-center">Qty: {row.quantity}</span>
-                                        <span className="text-center">{row.labor_hours_per_unit} hrs/unit</span>
-                                      </div>
-                                    ))}
+                                  <div className="text-center">
+                                    <div className="text-sm font-bold text-violet-400">Upload Any Document</div>
+                                    <div className="text-[10px] opacity-50 mt-1">Excel • PDF • Word • Images • CSV • Any file — AI will extract materials & labor hours</div>
                                   </div>
-                                  <div className="flex gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => setCsvPreview([])}
-                                      className="flex-1 py-2 bg-white/5 border border-white/20 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition-all"
-                                    >
-                                      Cancel
-                                    </button>
-                                    <button
-                                      type="button"
-                                      disabled={csvUploading}
-                                      onClick={async () => {
-                                        if (!selectedProject) return;
-                                        setCsvUploading(true);
-                                        try {
-                                          for (const row of csvPreview) {
-                                            await fetch(`/api/projects/${selectedProject.id}/materials`, {
-                                              method: 'POST',
-                                              headers: authHeaders(),
-                                              body: JSON.stringify(row),
-                                            });
-                                          }
-                                          setCsvPreview([]);
-                                          fetchMaterials(selectedProject.id, authToken!);
-                                        } catch (err) {
-                                          console.error('CSV import failed', err);
-                                          alert('Some materials failed to import.');
-                                        } finally {
-                                          setCsvUploading(false);
-                                        }
-                                      }}
-                                      className="flex-1 py-2 bg-dashboard-accent text-black font-bold rounded-xl text-xs uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                                    >
-                                      {csvUploading ? 'Importing...' : `Import ${csvPreview.length} Materials`}
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <label className="flex flex-col items-center gap-2 py-4 cursor-pointer hover:bg-white/5 rounded-xl transition-colors">
-                                  <Upload size={20} className="text-dashboard-accent opacity-60" />
-                                  <span className="text-xs opacity-60">Click to upload CSV file</span>
                                   <input
                                     type="file"
-                                    accept=".csv,.txt"
                                     className="hidden"
                                     onChange={(e) => {
                                       const file = e.target.files?.[0];
-                                      if (!file) return;
-                                      const reader = new FileReader();
-                                      reader.onload = (evt) => {
-                                        const text = evt.target?.result as string;
-                                        if (!text) return;
-                                        const lines = text.split(/\r?\n/).filter(l => l.trim());
-                                        if (lines.length < 2) { alert('CSV must have a header row and at least one data row.'); return; }
-                                        // Parse header to find column indices
-                                        const header = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z]/g, ''));
-                                        const nameIdx = header.findIndex(h => h.includes('material') || h.includes('name') || h.includes('item') || h.includes('description'));
-                                        const qtyIdx = header.findIndex(h => h.includes('qty') || h.includes('quantity') || h.includes('count'));
-                                        const laborIdx = header.findIndex(h => h.includes('labor') || h.includes('hour') || h.includes('hrs') || h.includes('time'));
-                                        if (nameIdx === -1 || laborIdx === -1) {
-                                          alert('CSV must have columns for Material (name/item/description) and Labor (hours/hrs/time). Quantity column is optional (defaults to 1).');
-                                          return;
-                                        }
-                                        const parsed: { name: string; quantity: number; labor_hours_per_unit: number }[] = [];
-                                        for (let i = 1; i < lines.length; i++) {
-                                          const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-                                          const name = cols[nameIdx];
-                                          const qty = qtyIdx !== -1 ? (parseFloat(cols[qtyIdx]) || 1) : 1;
-                                          const labor = parseFloat(cols[laborIdx]) || 0;
-                                          if (name && labor > 0) {
-                                            parsed.push({ name, quantity: qty, labor_hours_per_unit: labor });
-                                          }
-                                        }
-                                        if (parsed.length === 0) {
-                                          alert('No valid rows found. Each row needs a material name and labor hours > 0.');
-                                          return;
-                                        }
-                                        setCsvPreview(parsed);
-                                      };
-                                      reader.readAsText(file);
+                                      if (file) handleProposalUpload(file);
                                       e.target.value = '';
                                     }}
                                   />
                                 </label>
-                              )}
-                            </div>
-
-                            {/* Add Original Material Form */}
-                            <div className="bg-dashboard-accent/5 border border-dashboard-accent/20 rounded-xl p-4 space-y-3">
-                              <div className="text-[10px] font-bold uppercase tracking-widest text-dashboard-accent">Add Original Material</div>
-                              <div className={`grid ${showPricing ? 'grid-cols-[2fr_1fr_1fr_1fr]' : 'grid-cols-[2fr_1fr_1fr]'} gap-3`}>
-                                <input type="text" value={matName} onChange={(e) => setMatName(e.target.value)} placeholder="Material name (e.g. Cat6 Cable)" className="bg-black/40 border border-white/20 rounded-xl py-2.5 px-4 focus:border-dashboard-accent outline-none transition-colors text-sm" />
-                                <input type="number" value={matQty} onChange={(e) => setMatQty(e.target.value)} placeholder="Quantity" className="bg-black/40 border border-white/20 rounded-xl py-2.5 px-4 focus:border-dashboard-accent outline-none transition-colors text-sm" min="1" step="1" />
-                                <input type="number" value={matLaborPerUnit} onChange={(e) => setMatLaborPerUnit(e.target.value)} placeholder="Labor hrs/unit" className="bg-black/40 border border-white/20 rounded-xl py-2.5 px-4 focus:border-dashboard-accent outline-none transition-colors text-sm" min="0" step="0.1" />
-                                {showPricing && <input type="number" value={matCost} onChange={(e) => setMatCost(e.target.value)} placeholder="$ Cost/unit" className="bg-black/40 border border-white/20 rounded-xl py-2.5 px-4 focus:border-dashboard-accent outline-none transition-colors text-sm" min="0" step="0.01" />}
-                              </div>
-                              <button type="button" onClick={() => handleAddMaterial(false)} disabled={!matName || !matQty} className="w-full bg-dashboard-accent text-black font-bold py-2.5 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30 text-xs uppercase tracking-wider flex items-center justify-center gap-2">
-                                <PlusCircle size={14} /> Add Material
-                              </button>
-                            </div>
-                          </div>{/* close p-4 space-y-3 */}
-                        </div>{/* close original materials border section */}
-
-                        {/* ============ ADD-ONS / CHANGE ORDERS SECTION ============ */}
-                        <div className="border border-amber-500/30 rounded-xl overflow-hidden">
-                          <div className="bg-amber-500/10 px-4 py-3 flex items-center justify-between">
-                            <div className="text-xs font-bold uppercase tracking-widest text-amber-400 flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full bg-amber-400" /> Add-Ons / Change Orders
-                            </div>
-                            <div className="text-[10px] opacity-60">{addonMaterials.length} item{addonMaterials.length !== 1 ? 's' : ''}</div>
-                          </div>
-                          <div className="p-4 space-y-3">
-                            {/* Add-On Summary */}
-                            {addonMaterials.length > 0 && (
-                              <div className="grid grid-cols-3 gap-2 text-xs">
-                                <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-2 text-center">
-                                  <div className="opacity-50 text-[9px] uppercase">Qty</div>
-                                  <div className="font-bold">{addonTotals.totalUsed} / {addonTotals.totalQty}</div>
+                              ) : proposalLoading ? (
+                                // Loading state
+                                <div className="flex flex-col items-center gap-3 py-8">
+                                  <div className="w-10 h-10 border-3 border-violet-500/30 border-t-violet-400 rounded-full animate-spin" />
+                                  <div className="text-sm text-violet-400 font-bold">Extracting materials with AI...</div>
+                                  <div className="text-[10px] opacity-50">Analyzing document for materials, quantities, and labor hours</div>
                                 </div>
-                                <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-2 text-center">
-                                  <div className="opacity-50 text-[9px] uppercase">Labor Est</div>
-                                  <div className="font-bold">{addonTotals.totalLaborEst.toLocaleString()}h</div>
-                                </div>
-                                <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-2 text-center">
-                                  <div className="opacity-50 text-[9px] uppercase">Actual</div>
-                                  <div className={cn("font-bold", addonTotals.totalActualHours > addonTotals.totalLaborEst ? "text-red-400" : "text-amber-400")}>
-                                    {addonTotals.totalActualHours.toLocaleString()}h
+                              ) : (
+                                // Preview extracted materials
+                                <div className="space-y-3">
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-sm font-bold text-violet-400">{proposalMaterials.filter(m => m.selected).length} of {proposalMaterials.length} materials selected</div>
+                                    <div className="flex items-center gap-3">
+                                      <button type="button" onClick={() => setProposalMaterials(prev => prev.map(m => ({ ...m, selected: true })))} className="text-[9px] uppercase tracking-wider text-violet-400 hover:text-violet-300">Select All</button>
+                                      <button type="button" onClick={() => setProposalMaterials(prev => prev.map(m => ({ ...m, selected: false })))} className="text-[9px] uppercase tracking-wider opacity-50 hover:opacity-80">None</button>
+                                    </div>
+                                  </div>
+
+                                  <div className="max-h-64 overflow-y-auto space-y-1 rounded-lg">
+                                    <div className={`grid ${showPricing ? 'grid-cols-[auto_2fr_0.7fr_0.7fr_0.7fr]' : 'grid-cols-[auto_2fr_0.7fr_0.7fr]'} gap-2 px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest opacity-50 sticky top-0 bg-dashboard-bg`}>
+                                      <div></div>
+                                      <div>Material</div>
+                                      <div className="text-center">Qty</div>
+                                      <div className="text-center">Hrs/Unit</div>
+                                      {showPricing && <div className="text-center">Cost/Unit</div>}
+                                    </div>
+                                    {proposalMaterials.map((mat, idx) => (
+                                      <div key={idx} className={cn(`grid ${showPricing ? 'grid-cols-[auto_2fr_0.7fr_0.7fr_0.7fr]' : 'grid-cols-[auto_2fr_0.7fr_0.7fr]'} gap-2 px-3 py-2 rounded-lg items-center transition-all`, mat.selected ? "bg-violet-500/10 border border-violet-500/20" : "bg-white/5 border border-transparent opacity-50")}>
+                                        <input type="checkbox" checked={mat.selected} onChange={() => setProposalMaterials(prev => prev.map((m, i) => i === idx ? { ...m, selected: !m.selected } : m))} className="w-4 h-4 rounded accent-violet-500" />
+                                        <input type="text" value={mat.name} onChange={(e) => setProposalMaterials(prev => prev.map((m, i) => i === idx ? { ...m, name: e.target.value } : m))} className="bg-transparent border-b border-white/10 focus:border-violet-400 outline-none text-sm py-1" />
+                                        <input type="number" value={mat.quantity} onChange={(e) => setProposalMaterials(prev => prev.map((m, i) => i === idx ? { ...m, quantity: parseFloat(e.target.value) || 0 } : m))} className="bg-transparent border-b border-white/10 focus:border-violet-400 outline-none text-sm text-center py-1 w-full" min="0" step="1" />
+                                        <input type="number" value={mat.labor_hours_per_unit} onChange={(e) => setProposalMaterials(prev => prev.map((m, i) => i === idx ? { ...m, labor_hours_per_unit: parseFloat(e.target.value) || 0 } : m))} className="bg-transparent border-b border-white/10 focus:border-violet-400 outline-none text-sm text-center py-1 w-full" min="0" step="0.01" />
+                                        {showPricing && <input type="number" value={mat.unit_cost} onChange={(e) => setProposalMaterials(prev => prev.map((m, i) => i === idx ? { ...m, unit_cost: parseFloat(e.target.value) || 0 } : m))} className="bg-transparent border-b border-white/10 focus:border-violet-400 outline-none text-sm text-center py-1 w-full" min="0" step="0.01" />}
+                                      </div>
+                                    ))}
+                                  </div>
+
+                                  {/* Import as add-on toggle + import buttons */}
+                                  <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                      <input type="checkbox" checked={proposalAsAddon} onChange={() => setProposalAsAddon(!proposalAsAddon)} className="w-4 h-4 rounded accent-amber-500" />
+                                      <span className={cn("text-xs font-bold uppercase tracking-wider", proposalAsAddon ? "text-amber-400" : "opacity-60")}>
+                                        {proposalAsAddon ? 'Import as Add-On / Change Order' : 'Import as Original Material'}
+                                      </span>
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                      <button type="button" onClick={() => { setProposalMaterials([]); setProposalError(''); }} className="px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition-all">
+                                        Cancel
+                                      </button>
+                                      <button type="button" onClick={handleProposalImport} disabled={proposalMaterials.filter(m => m.selected).length === 0 || proposalLoading} className="px-5 py-2 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-bold rounded-lg text-xs uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30 flex items-center gap-2">
+                                        <Download size={12} /> Import {proposalMaterials.filter(m => m.selected).length} Materials
+                                      </button>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
 
-                            {/* Add-On Material List */}
-                            {addonMaterials.length === 0 ? (
-                              <div className="text-center py-4 opacity-50 text-sm">No add-ons or change orders yet.</div>
-                            ) : (
-                              <div className="space-y-2">
-                                <div className={`grid ${showPricing ? 'grid-cols-[2fr_0.6fr_0.6fr_0.6fr_0.6fr_0.7fr_0.9fr_0.8fr_auto]' : 'grid-cols-[2fr_0.6fr_0.6fr_0.6fr_0.9fr_0.8fr_auto]'} gap-2 px-3 py-2 text-[9px] font-bold uppercase tracking-widest opacity-60`}>
-                                  <div>Material</div>
-                                  <div className="text-center">Needed</div>
-                                  <div className="text-center">Installed</div>
-                                  <div className="text-center">Remaining</div>
-                                  {showPricing && <div className="text-center">$/Unit</div>}
-                                  {showPricing && <div className="text-center">Ext. Cost</div>}
-                                  <div className="text-center">Hours (Actual / Est)</div>
-                                  <div className="text-center">Action</div>
-                                  <div></div>
+                              {proposalError && (
+                                <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-sm text-red-400 flex items-center gap-2">
+                                  <span className="text-red-500 font-bold">⚠</span> {proposalError}
                                 </div>
-                                {addonMaterials.map(mat => {
-                                  const remaining = mat.quantity - mat.quantity_used;
-                                  const laborEst = mat.quantity * mat.labor_hours_per_unit;
-                                  const actualHrs = mat.actual_labor_hours || 0;
-                                  const progress = mat.quantity > 0 ? (mat.quantity_used / mat.quantity) * 100 : 0;
-                                  const isLogging = logMaterialId === mat.id;
-                                  const extCost = mat.quantity * (mat.unit_cost || 0);
-                                  return (
-                                    <div key={mat.id} className="bg-amber-500/5 border border-amber-500/15 rounded-xl overflow-hidden">
-                                      <div className={`grid ${showPricing ? 'grid-cols-[2fr_0.6fr_0.6fr_0.6fr_0.6fr_0.7fr_0.9fr_0.8fr_auto]' : 'grid-cols-[2fr_0.6fr_0.6fr_0.6fr_0.9fr_0.8fr_auto]'} gap-2 items-center px-3 py-3`}>
-                                        <div>
-                                          <div className="font-bold text-sm flex items-center gap-1.5">{mat.name} <span className="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">ADD-ON</span></div>
-                                          <div className="text-[10px] opacity-50">{mat.labor_hours_per_unit}h per unit</div>
-                                          <div className="w-full h-1.5 bg-white/10 rounded-full mt-1.5 overflow-hidden">
-                                            <div className={cn("h-full rounded-full", progress > 100 ? "bg-red-500" : "bg-amber-400")} style={{ width: `${Math.min(progress, 100)}%` }} />
+                              )}
+                            </div>
+                          </div>
+
+                          {/* ============ ORIGINAL MATERIALS SECTION ============ */}
+                          <div className="border border-dashboard-accent/30 rounded-xl overflow-hidden">
+                            <div className="bg-dashboard-accent/10 px-4 py-3 flex items-center justify-between">
+                              <div className="text-xs font-bold uppercase tracking-widest text-dashboard-accent flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-dashboard-accent" /> Original Materials
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <div className="text-[10px] opacity-60">{originalMaterials.length} item{originalMaterials.length !== 1 ? 's' : ''}</div>
+                                {materials.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={handleClearAllMaterials}
+                                    className="text-[9px] font-bold uppercase tracking-wider text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2.5 py-1 rounded-lg border border-red-500/20 hover:border-red-500/40 transition-all"
+                                  >
+                                    <Trash2 size={10} className="inline mr-1" />Clear All
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            <div className="p-4 space-y-3">
+                              {/* Original Summary */}
+                              {originalMaterials.length > 0 && (
+                                <div className="grid grid-cols-3 gap-2 text-xs">
+                                  <div className="bg-white/5 rounded-lg p-2 text-center">
+                                    <div className="opacity-50 text-[9px] uppercase">Qty</div>
+                                    <div className="font-bold">{origTotals.totalUsed} / {origTotals.totalQty}</div>
+                                  </div>
+                                  <div className="bg-white/5 rounded-lg p-2 text-center">
+                                    <div className="opacity-50 text-[9px] uppercase">Labor Est</div>
+                                    <div className="font-bold">{origTotals.totalLaborEst.toLocaleString()}h</div>
+                                  </div>
+                                  <div className="bg-white/5 rounded-lg p-2 text-center">
+                                    <div className="opacity-50 text-[9px] uppercase">Actual</div>
+                                    <div className={cn("font-bold", origTotals.totalActualHours > origTotals.totalLaborEst ? "text-red-400" : "text-amber-400")}>
+                                      {origTotals.totalActualHours.toLocaleString()}h
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Original Material List */}
+                              {loadingMaterials ? (
+                                <div className="text-center py-8 opacity-50">Loading materials...</div>
+                              ) : originalMaterials.length === 0 ? (
+                                <div className="text-center py-4 opacity-50 text-sm">No original materials added yet.</div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {/* Table Header */}
+                                  <div className={`grid ${showPricing ? 'grid-cols-[2fr_0.6fr_0.6fr_0.6fr_0.6fr_0.7fr_0.9fr_0.8fr_auto]' : 'grid-cols-[2fr_0.6fr_0.6fr_0.6fr_0.9fr_0.8fr_auto]'} gap-2 px-3 py-2 text-[9px] font-bold uppercase tracking-widest opacity-60`}>
+                                    <div>Material</div>
+                                    <div className="text-center">Needed</div>
+                                    <div className="text-center">Installed</div>
+                                    <div className="text-center">Remaining</div>
+                                    {showPricing && <div className="text-center">$/Unit</div>}
+                                    {showPricing && <div className="text-center">Ext. Cost</div>}
+                                    <div className="text-center">Hours (Actual / Est)</div>
+                                    <div className="text-center">Action</div>
+                                    <div></div>
+                                  </div>
+                                  {originalMaterials.map(mat => {
+                                    const remaining = mat.quantity - mat.quantity_used;
+                                    const laborEst = mat.quantity * mat.labor_hours_per_unit;
+                                    const actualHrs = mat.actual_labor_hours || 0;
+                                    const progress = mat.quantity > 0 ? (mat.quantity_used / mat.quantity) * 100 : 0;
+                                    const isLogging = logMaterialId === mat.id;
+                                    const extCost = mat.quantity * (mat.unit_cost || 0);
+                                    return (
+                                      <div key={mat.id} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                                        <div className={`grid ${showPricing ? 'grid-cols-[2fr_0.6fr_0.6fr_0.6fr_0.6fr_0.7fr_0.9fr_0.8fr_auto]' : 'grid-cols-[2fr_0.6fr_0.6fr_0.6fr_0.9fr_0.8fr_auto]'} gap-2 items-center px-3 py-3`}>
+                                          <div>
+                                            <div className="font-bold text-sm">{mat.name}</div>
+                                            <div className="text-[10px] opacity-50">{mat.labor_hours_per_unit}h per unit</div>
+                                            <div className="w-full h-1.5 bg-white/10 rounded-full mt-1.5 overflow-hidden">
+                                              <div className={cn("h-full rounded-full", progress > 100 ? "bg-red-500" : "bg-dashboard-accent")} style={{ width: `${Math.min(progress, 100)}%` }} />
+                                            </div>
                                           </div>
-                                        </div>
-                                        <div className="text-center font-bold">{mat.quantity.toLocaleString()}</div>
-                                        <div className="text-center font-bold text-amber-400">{mat.quantity_used.toLocaleString()}</div>
-                                        <div className={cn("text-center font-bold", remaining < 0 ? "text-red-400" : "text-emerald-400")}>
-                                          {remaining.toLocaleString()}
-                                        </div>
-                                        {showPricing && (
-                                          editingCostId === mat.id ? (
-                                            <input
-                                              type="number"
-                                              autoFocus
-                                              defaultValue={(mat.unit_cost || 0).toFixed(2)}
-                                              className="w-full bg-black/80 border-2 border-amber-400 rounded-lg px-2 py-1 text-center text-sm font-bold outline-none text-white"
-                                              min="0" step="0.01"
-                                              onBlur={(e) => handleUpdateMaterialCost(mat.id, parseFloat(e.target.value) || 0)}
-                                              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') setEditingCostId(null); }}
-                                            />
-                                          ) : (
-                                            <button
-                                              type="button"
-                                              className="w-full text-center text-sm font-bold px-2 py-1 rounded-lg border border-transparent hover:border-amber-400/50 hover:bg-amber-400/10 cursor-pointer transition-all group"
-                                              onClick={() => setEditingCostId(mat.id)}
-                                            >
-                                              ${(mat.unit_cost || 0).toFixed(2)} <span className="text-[9px] opacity-0 group-hover:opacity-60 transition-opacity">✏️</span>
-                                            </button>
-                                          )
-                                        )}
-                                        {showPricing && <div className="text-center text-sm font-bold text-emerald-400">${extCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>}
-                                        <div className="text-center text-sm">
-                                          <span className="font-bold text-amber-400">{actualHrs.toLocaleString()}h</span>
-                                          <span className="opacity-50"> / {laborEst.toLocaleString()}h</span>
-                                        </div>
-                                        <div className="text-center">
-                                          <button type="button" onClick={() => { if (isLogging) { setLogMaterialId(null); setLogQty(''); setLogHours(''); setLogCost(''); } else { setLogMaterialId(mat.id); setLogQty(''); setLogHours(''); setLogCost((mat.unit_cost || 0).toString()); } }} className={cn("px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all", isLogging ? "bg-white/10 text-white" : "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30")}>
-                                            {isLogging ? 'Cancel' : '+ Log Install'}
-                                          </button>
-                                        </div>
-                                        <div className="text-center">
-                                          <button type="button" onClick={() => handleDeleteMaterial(mat.id)} className="p-1.5 rounded-lg hover:bg-red-500/20 hover:text-red-400 transition-all opacity-40 hover:opacity-100">
-                                            <Trash2 size={14} />
-                                          </button>
-                                        </div>
-                                      </div>
-                                      {isLogging && (
-                                        <div className="px-3 pb-3 pt-1 bg-amber-500/5 border-t border-amber-500/20">
-                                          <div className="grid grid-cols-[1fr_1fr_auto] gap-3 items-end">
-                                            <div>
-                                              <label className="text-[9px] font-bold uppercase tracking-widest opacity-60 block mb-1">Qty Installed Today</label>
-                                              <input type="number" value={logQty} onChange={(e) => setLogQty(e.target.value)} placeholder="e.g. 50" className="w-full bg-black/40 border border-white/20 rounded-lg py-2 px-3 text-sm font-bold focus:border-amber-400 outline-none" min="0" step="1" autoFocus />
-                                            </div>
-                                            <div>
-                                              <label className="text-[9px] font-bold uppercase tracking-widest opacity-60 block mb-1">Hours Worked</label>
-                                              <input type="number" value={logHours} onChange={(e) => setLogHours(e.target.value)} placeholder="e.g. 4" className="w-full bg-black/40 border border-white/20 rounded-lg py-2 px-3 text-sm font-bold focus:border-amber-400 outline-none" min="0" step="0.25" />
-                                            </div>
-                                            <button type="button" onClick={() => handleLogInstall(mat.id)} disabled={(!logQty || parseFloat(logQty) <= 0) && (!logHours || parseFloat(logHours) <= 0) && !(showPricing && logCost && parseFloat(logCost) !== (mat.unit_cost || 0))} className="bg-amber-500 text-black font-bold py-2 px-5 rounded-lg text-xs uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30">
-                                              Submit
-                                            </button>
+                                          <div className="text-center font-bold">{mat.quantity.toLocaleString()}</div>
+                                          <div className="text-center font-bold text-dashboard-accent">{mat.quantity_used.toLocaleString()}</div>
+                                          <div className={cn("text-center font-bold", remaining < 0 ? "text-red-400" : "text-emerald-400")}>
+                                            {remaining.toLocaleString()}
                                           </div>
                                           {showPricing && (
-                                            <div className="mt-3 pt-3 border-t border-white/10">
-                                              <label className="text-[9px] font-bold uppercase tracking-widest opacity-60 block mb-1">💰 Unit Cost ($)</label>
+                                            editingCostId === mat.id ? (
                                               <input
                                                 type="number"
-                                                value={logCost}
-                                                onChange={(e) => setLogCost(e.target.value)}
-                                                placeholder="e.g. 25.00"
-                                                className="w-full bg-black/40 border border-emerald-500/40 rounded-lg py-2 px-3 text-sm font-bold text-emerald-400 focus:border-emerald-400 outline-none"
-                                                min="0"
-                                                step="0.01"
+                                                autoFocus
+                                                defaultValue={(mat.unit_cost || 0).toFixed(2)}
+                                                className="w-full bg-black/80 border-2 border-dashboard-accent rounded-lg px-2 py-1 text-center text-sm font-bold outline-none text-white"
+                                                min="0" step="0.01"
+                                                onBlur={(e) => handleUpdateMaterialCost(mat.id, parseFloat(e.target.value) || 0)}
+                                                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') setEditingCostId(null); }}
                                               />
-                                            </div>
+                                            ) : (
+                                              <button
+                                                type="button"
+                                                className="w-full text-center text-sm font-bold px-2 py-1 rounded-lg border border-transparent hover:border-dashboard-accent/50 hover:bg-dashboard-accent/10 cursor-pointer transition-all group"
+                                                onClick={() => setEditingCostId(mat.id)}
+                                              >
+                                                ${(mat.unit_cost || 0).toFixed(2)} <span className="text-[9px] opacity-0 group-hover:opacity-60 transition-opacity">✏️</span>
+                                              </button>
+                                            )
                                           )}
+                                          {showPricing && <div className="text-center text-sm font-bold text-emerald-400">${extCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>}
+                                          <div className="text-center text-sm">
+                                            <span className="font-bold text-amber-400">{actualHrs.toLocaleString()}h</span>
+                                            <span className="opacity-50"> / {laborEst.toLocaleString()}h</span>
+                                          </div>
+                                          <div className="text-center">
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                if (isLogging) {
+                                                  setLogMaterialId(null);
+                                                  setLogQty(''); setLogHours(''); setLogCost('');
+                                                } else {
+                                                  setLogMaterialId(mat.id);
+                                                  setLogQty(''); setLogHours('');
+                                                  setLogCost((mat.unit_cost || 0).toString());
+                                                }
+                                              }}
+                                              className={cn(
+                                                "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
+                                                isLogging
+                                                  ? "bg-white/10 text-white"
+                                                  : "bg-dashboard-accent/20 text-dashboard-accent hover:bg-dashboard-accent/30"
+                                              )}
+                                            >
+                                              {isLogging ? 'Cancel' : '+ Log Install'}
+                                            </button>
+                                          </div>
+                                          <div className="text-center">
+                                            <button
+                                              type="button"
+                                              onClick={() => handleDeleteMaterial(mat.id)}
+                                              className="p-1.5 rounded-lg hover:bg-red-500/20 hover:text-red-400 transition-all opacity-40 hover:opacity-100"
+                                            >
+                                              <Trash2 size={14} />
+                                            </button>
+                                          </div>
                                         </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
+                                        {/* Expandable Log Install Form */}
+                                        {isLogging && (
+                                          <div className="px-3 pb-3 pt-1 bg-dashboard-accent/5 border-t border-dashboard-accent/20">
+                                            <div className="grid grid-cols-[1fr_1fr_auto] gap-3 items-end">
+                                              <div>
+                                                <label className="text-[9px] font-bold uppercase tracking-widest opacity-60 block mb-1">Qty Installed Today</label>
+                                                <input
+                                                  type="number"
+                                                  value={logQty}
+                                                  onChange={(e) => setLogQty(e.target.value)}
+                                                  placeholder="e.g. 50"
+                                                  className="w-full bg-black/40 border border-white/20 rounded-lg py-2 px-3 text-sm font-bold focus:border-dashboard-accent outline-none"
+                                                  min="0"
+                                                  step="1"
+                                                  autoFocus
+                                                />
+                                              </div>
+                                              <div>
+                                                <label className="text-[9px] font-bold uppercase tracking-widest opacity-60 block mb-1">Hours Worked</label>
+                                                <input
+                                                  type="number"
+                                                  value={logHours}
+                                                  onChange={(e) => setLogHours(e.target.value)}
+                                                  placeholder="e.g. 4"
+                                                  className="w-full bg-black/40 border border-white/20 rounded-lg py-2 px-3 text-sm font-bold focus:border-dashboard-accent outline-none"
+                                                  min="0"
+                                                  step="0.25"
+                                                />
+                                              </div>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleLogInstall(mat.id)}
+                                                disabled={(!logQty || parseFloat(logQty) <= 0) && (!logHours || parseFloat(logHours) <= 0) && !(showPricing && logCost && parseFloat(logCost) !== (mat.unit_cost || 0))}
+                                                className="bg-dashboard-accent text-black font-bold py-2 px-5 rounded-lg text-xs uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30"
+                                              >
+                                                Submit
+                                              </button>
+                                            </div>
+                                            {showPricing && (
+                                              <div className="mt-3 pt-3 border-t border-white/10">
+                                                <label className="text-[9px] font-bold uppercase tracking-widest opacity-60 block mb-1">💰 Unit Cost ($)</label>
+                                                <input
+                                                  type="number"
+                                                  value={logCost}
+                                                  onChange={(e) => setLogCost(e.target.value)}
+                                                  placeholder="e.g. 25.00"
+                                                  className="w-full bg-black/40 border border-emerald-500/40 rounded-lg py-2 px-3 text-sm font-bold text-emerald-400 focus:border-emerald-400 outline-none"
+                                                  min="0"
+                                                  step="0.01"
+                                                />
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
 
-                            {/* Add Add-On Form */}
-                            <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 space-y-3">
-                              <div className="text-[10px] font-bold uppercase tracking-widest text-amber-400">Add Change Order / Add-On Material</div>
-                              <div className={`grid ${showPricing ? 'grid-cols-[2fr_1fr_1fr_1fr]' : 'grid-cols-[2fr_1fr_1fr]'} gap-3`}>
-                                <input type="text" value={matName} onChange={(e) => setMatName(e.target.value)} placeholder="Material name" className="bg-black/40 border border-white/20 rounded-xl py-2.5 px-4 focus:border-amber-400 outline-none transition-colors text-sm" />
-                                <input type="number" value={matQty} onChange={(e) => setMatQty(e.target.value)} placeholder="Quantity" className="bg-black/40 border border-white/20 rounded-xl py-2.5 px-4 focus:border-amber-400 outline-none transition-colors text-sm" min="1" step="1" />
-                                <input type="number" value={matLaborPerUnit} onChange={(e) => setMatLaborPerUnit(e.target.value)} placeholder="Labor hrs/unit" className="bg-black/40 border border-white/20 rounded-xl py-2.5 px-4 focus:border-amber-400 outline-none transition-colors text-sm" min="0" step="0.1" />
-                                {showPricing && <input type="number" value={matCost} onChange={(e) => setMatCost(e.target.value)} placeholder="$ Cost/unit" className="bg-black/40 border border-white/20 rounded-xl py-2.5 px-4 focus:border-amber-400 outline-none transition-colors text-sm" min="0" step="0.01" />}
+                              {/* Upload CSV */}
+                              <div className="bg-white/5 border border-dashed border-white/20 rounded-xl p-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <div className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                                    <FileSpreadsheet size={12} className="text-dashboard-accent" />
+                                    Import from CSV
+                                  </div>
+                                  <span className="text-[9px] opacity-40">Columns: Material, Quantity, Labor Hrs/Unit</span>
+                                </div>
+                                {csvPreview.length > 0 ? (
+                                  <div className="space-y-2">
+                                    <div className="text-xs font-bold text-dashboard-accent">{csvPreview.length} materials ready to import:</div>
+                                    <div className="max-h-40 overflow-y-auto space-y-1">
+                                      {csvPreview.map((row, i) => (
+                                        <div key={i} className="grid grid-cols-3 gap-2 text-xs bg-black/20 rounded-lg px-3 py-1.5">
+                                          <span className="font-bold truncate">{row.name}</span>
+                                          <span className="text-center">Qty: {row.quantity}</span>
+                                          <span className="text-center">{row.labor_hours_per_unit} hrs/unit</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => setCsvPreview([])}
+                                        className="flex-1 py-2 bg-white/5 border border-white/20 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition-all"
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button
+                                        type="button"
+                                        disabled={csvUploading}
+                                        onClick={async () => {
+                                          if (!selectedProject) return;
+                                          setCsvUploading(true);
+                                          try {
+                                            for (const row of csvPreview) {
+                                              await fetch(`/api/projects/${selectedProject.id}/materials`, {
+                                                method: 'POST',
+                                                headers: authHeaders(),
+                                                body: JSON.stringify(row),
+                                              });
+                                            }
+                                            setCsvPreview([]);
+                                            fetchMaterials(selectedProject.id, authToken!);
+                                          } catch (err) {
+                                            console.error('CSV import failed', err);
+                                            alert('Some materials failed to import.');
+                                          } finally {
+                                            setCsvUploading(false);
+                                          }
+                                        }}
+                                        className="flex-1 py-2 bg-dashboard-accent text-black font-bold rounded-xl text-xs uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                      >
+                                        {csvUploading ? 'Importing...' : `Import ${csvPreview.length} Materials`}
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <label className="flex flex-col items-center gap-2 py-4 cursor-pointer hover:bg-white/5 rounded-xl transition-colors">
+                                    <Upload size={20} className="text-dashboard-accent opacity-60" />
+                                    <span className="text-xs opacity-60">Click to upload CSV file</span>
+                                    <input
+                                      type="file"
+                                      accept=".csv,.txt"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        const reader = new FileReader();
+                                        reader.onload = (evt) => {
+                                          const text = evt.target?.result as string;
+                                          if (!text) return;
+                                          const lines = text.split(/\r?\n/).filter(l => l.trim());
+                                          if (lines.length < 2) { alert('CSV must have a header row and at least one data row.'); return; }
+                                          // Parse header to find column indices
+                                          const header = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z]/g, ''));
+                                          const nameIdx = header.findIndex(h => h.includes('material') || h.includes('name') || h.includes('item') || h.includes('description'));
+                                          const qtyIdx = header.findIndex(h => h.includes('qty') || h.includes('quantity') || h.includes('count'));
+                                          const laborIdx = header.findIndex(h => h.includes('labor') || h.includes('hour') || h.includes('hrs') || h.includes('time'));
+                                          if (nameIdx === -1 || laborIdx === -1) {
+                                            alert('CSV must have columns for Material (name/item/description) and Labor (hours/hrs/time). Quantity column is optional (defaults to 1).');
+                                            return;
+                                          }
+                                          const parsed: { name: string; quantity: number; labor_hours_per_unit: number }[] = [];
+                                          for (let i = 1; i < lines.length; i++) {
+                                            const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+                                            const name = cols[nameIdx];
+                                            const qty = qtyIdx !== -1 ? (parseFloat(cols[qtyIdx]) || 1) : 1;
+                                            const labor = parseFloat(cols[laborIdx]) || 0;
+                                            if (name && labor > 0) {
+                                              parsed.push({ name, quantity: qty, labor_hours_per_unit: labor });
+                                            }
+                                          }
+                                          if (parsed.length === 0) {
+                                            alert('No valid rows found. Each row needs a material name and labor hours > 0.');
+                                            return;
+                                          }
+                                          setCsvPreview(parsed);
+                                        };
+                                        reader.readAsText(file);
+                                        e.target.value = '';
+                                      }}
+                                    />
+                                  </label>
+                                )}
                               </div>
-                              <button type="button" onClick={() => handleAddMaterial(true)} disabled={!matName || !matQty} className="w-full bg-amber-500 text-black font-bold py-2.5 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30 text-xs uppercase tracking-wider flex items-center justify-center gap-2">
-                                <PlusCircle size={14} /> Add Change Order
-                              </button>
+
+                              {/* Add Original Material Form */}
+                              <div className="bg-dashboard-accent/5 border border-dashboard-accent/20 rounded-xl p-4 space-y-3">
+                                <div className="text-[10px] font-bold uppercase tracking-widest text-dashboard-accent">Add Original Material</div>
+                                <div className={`grid ${showPricing ? 'grid-cols-[2fr_1fr_1fr_1fr]' : 'grid-cols-[2fr_1fr_1fr]'} gap-3`}>
+                                  <input type="text" value={matName} onChange={(e) => setMatName(e.target.value)} placeholder="Material name (e.g. Cat6 Cable)" className="bg-black/40 border border-white/20 rounded-xl py-2.5 px-4 focus:border-dashboard-accent outline-none transition-colors text-sm" />
+                                  <input type="number" value={matQty} onChange={(e) => setMatQty(e.target.value)} placeholder="Quantity" className="bg-black/40 border border-white/20 rounded-xl py-2.5 px-4 focus:border-dashboard-accent outline-none transition-colors text-sm" min="1" step="1" />
+                                  <input type="number" value={matLaborPerUnit} onChange={(e) => setMatLaborPerUnit(e.target.value)} placeholder="Labor hrs/unit" className="bg-black/40 border border-white/20 rounded-xl py-2.5 px-4 focus:border-dashboard-accent outline-none transition-colors text-sm" min="0" step="0.1" />
+                                  {showPricing && <input type="number" value={matCost} onChange={(e) => setMatCost(e.target.value)} placeholder="$ Cost/unit" className="bg-black/40 border border-white/20 rounded-xl py-2.5 px-4 focus:border-dashboard-accent outline-none transition-colors text-sm" min="0" step="0.01" />}
+                                </div>
+                                <button type="button" onClick={() => handleAddMaterial(false)} disabled={!matName || !matQty} className="w-full bg-dashboard-accent text-black font-bold py-2.5 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30 text-xs uppercase tracking-wider flex items-center justify-center gap-2">
+                                  <PlusCircle size={14} /> Add Material
+                                </button>
+                              </div>
+                            </div>{/* close p-4 space-y-3 */}
+                          </div>{/* close original materials border section */}
+
+                          {/* ============ ADD-ONS / CHANGE ORDERS SECTION ============ */}
+                          <div className="border border-amber-500/30 rounded-xl overflow-hidden">
+                            <div className="bg-amber-500/10 px-4 py-3 flex items-center justify-between">
+                              <div className="text-xs font-bold uppercase tracking-widest text-amber-400 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-amber-400" /> Add-Ons / Change Orders
+                              </div>
+                              <div className="text-[10px] opacity-60">{addonMaterials.length} item{addonMaterials.length !== 1 ? 's' : ''}</div>
+                            </div>
+                            <div className="p-4 space-y-3">
+                              {/* Add-On Summary */}
+                              {addonMaterials.length > 0 && (
+                                <div className="grid grid-cols-3 gap-2 text-xs">
+                                  <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-2 text-center">
+                                    <div className="opacity-50 text-[9px] uppercase">Qty</div>
+                                    <div className="font-bold">{addonTotals.totalUsed} / {addonTotals.totalQty}</div>
+                                  </div>
+                                  <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-2 text-center">
+                                    <div className="opacity-50 text-[9px] uppercase">Labor Est</div>
+                                    <div className="font-bold">{addonTotals.totalLaborEst.toLocaleString()}h</div>
+                                  </div>
+                                  <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-2 text-center">
+                                    <div className="opacity-50 text-[9px] uppercase">Actual</div>
+                                    <div className={cn("font-bold", addonTotals.totalActualHours > addonTotals.totalLaborEst ? "text-red-400" : "text-amber-400")}>
+                                      {addonTotals.totalActualHours.toLocaleString()}h
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Add-On Material List */}
+                              {addonMaterials.length === 0 ? (
+                                <div className="text-center py-4 opacity-50 text-sm">No add-ons or change orders yet.</div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <div className={`grid ${showPricing ? 'grid-cols-[2fr_0.6fr_0.6fr_0.6fr_0.6fr_0.7fr_0.9fr_0.8fr_auto]' : 'grid-cols-[2fr_0.6fr_0.6fr_0.6fr_0.9fr_0.8fr_auto]'} gap-2 px-3 py-2 text-[9px] font-bold uppercase tracking-widest opacity-60`}>
+                                    <div>Material</div>
+                                    <div className="text-center">Needed</div>
+                                    <div className="text-center">Installed</div>
+                                    <div className="text-center">Remaining</div>
+                                    {showPricing && <div className="text-center">$/Unit</div>}
+                                    {showPricing && <div className="text-center">Ext. Cost</div>}
+                                    <div className="text-center">Hours (Actual / Est)</div>
+                                    <div className="text-center">Action</div>
+                                    <div></div>
+                                  </div>
+                                  {addonMaterials.map(mat => {
+                                    const remaining = mat.quantity - mat.quantity_used;
+                                    const laborEst = mat.quantity * mat.labor_hours_per_unit;
+                                    const actualHrs = mat.actual_labor_hours || 0;
+                                    const progress = mat.quantity > 0 ? (mat.quantity_used / mat.quantity) * 100 : 0;
+                                    const isLogging = logMaterialId === mat.id;
+                                    const extCost = mat.quantity * (mat.unit_cost || 0);
+                                    return (
+                                      <div key={mat.id} className="bg-amber-500/5 border border-amber-500/15 rounded-xl overflow-hidden">
+                                        <div className={`grid ${showPricing ? 'grid-cols-[2fr_0.6fr_0.6fr_0.6fr_0.6fr_0.7fr_0.9fr_0.8fr_auto]' : 'grid-cols-[2fr_0.6fr_0.6fr_0.6fr_0.9fr_0.8fr_auto]'} gap-2 items-center px-3 py-3`}>
+                                          <div>
+                                            <div className="font-bold text-sm flex items-center gap-1.5">{mat.name} <span className="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">ADD-ON</span></div>
+                                            <div className="text-[10px] opacity-50">{mat.labor_hours_per_unit}h per unit</div>
+                                            <div className="w-full h-1.5 bg-white/10 rounded-full mt-1.5 overflow-hidden">
+                                              <div className={cn("h-full rounded-full", progress > 100 ? "bg-red-500" : "bg-amber-400")} style={{ width: `${Math.min(progress, 100)}%` }} />
+                                            </div>
+                                          </div>
+                                          <div className="text-center font-bold">{mat.quantity.toLocaleString()}</div>
+                                          <div className="text-center font-bold text-amber-400">{mat.quantity_used.toLocaleString()}</div>
+                                          <div className={cn("text-center font-bold", remaining < 0 ? "text-red-400" : "text-emerald-400")}>
+                                            {remaining.toLocaleString()}
+                                          </div>
+                                          {showPricing && (
+                                            editingCostId === mat.id ? (
+                                              <input
+                                                type="number"
+                                                autoFocus
+                                                defaultValue={(mat.unit_cost || 0).toFixed(2)}
+                                                className="w-full bg-black/80 border-2 border-amber-400 rounded-lg px-2 py-1 text-center text-sm font-bold outline-none text-white"
+                                                min="0" step="0.01"
+                                                onBlur={(e) => handleUpdateMaterialCost(mat.id, parseFloat(e.target.value) || 0)}
+                                                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') setEditingCostId(null); }}
+                                              />
+                                            ) : (
+                                              <button
+                                                type="button"
+                                                className="w-full text-center text-sm font-bold px-2 py-1 rounded-lg border border-transparent hover:border-amber-400/50 hover:bg-amber-400/10 cursor-pointer transition-all group"
+                                                onClick={() => setEditingCostId(mat.id)}
+                                              >
+                                                ${(mat.unit_cost || 0).toFixed(2)} <span className="text-[9px] opacity-0 group-hover:opacity-60 transition-opacity">✏️</span>
+                                              </button>
+                                            )
+                                          )}
+                                          {showPricing && <div className="text-center text-sm font-bold text-emerald-400">${extCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>}
+                                          <div className="text-center text-sm">
+                                            <span className="font-bold text-amber-400">{actualHrs.toLocaleString()}h</span>
+                                            <span className="opacity-50"> / {laborEst.toLocaleString()}h</span>
+                                          </div>
+                                          <div className="text-center">
+                                            <button type="button" onClick={() => { if (isLogging) { setLogMaterialId(null); setLogQty(''); setLogHours(''); setLogCost(''); } else { setLogMaterialId(mat.id); setLogQty(''); setLogHours(''); setLogCost((mat.unit_cost || 0).toString()); } }} className={cn("px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all", isLogging ? "bg-white/10 text-white" : "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30")}>
+                                              {isLogging ? 'Cancel' : '+ Log Install'}
+                                            </button>
+                                          </div>
+                                          <div className="text-center">
+                                            <button type="button" onClick={() => handleDeleteMaterial(mat.id)} className="p-1.5 rounded-lg hover:bg-red-500/20 hover:text-red-400 transition-all opacity-40 hover:opacity-100">
+                                              <Trash2 size={14} />
+                                            </button>
+                                          </div>
+                                        </div>
+                                        {isLogging && (
+                                          <div className="px-3 pb-3 pt-1 bg-amber-500/5 border-t border-amber-500/20">
+                                            <div className="grid grid-cols-[1fr_1fr_auto] gap-3 items-end">
+                                              <div>
+                                                <label className="text-[9px] font-bold uppercase tracking-widest opacity-60 block mb-1">Qty Installed Today</label>
+                                                <input type="number" value={logQty} onChange={(e) => setLogQty(e.target.value)} placeholder="e.g. 50" className="w-full bg-black/40 border border-white/20 rounded-lg py-2 px-3 text-sm font-bold focus:border-amber-400 outline-none" min="0" step="1" autoFocus />
+                                              </div>
+                                              <div>
+                                                <label className="text-[9px] font-bold uppercase tracking-widest opacity-60 block mb-1">Hours Worked</label>
+                                                <input type="number" value={logHours} onChange={(e) => setLogHours(e.target.value)} placeholder="e.g. 4" className="w-full bg-black/40 border border-white/20 rounded-lg py-2 px-3 text-sm font-bold focus:border-amber-400 outline-none" min="0" step="0.25" />
+                                              </div>
+                                              <button type="button" onClick={() => handleLogInstall(mat.id)} disabled={(!logQty || parseFloat(logQty) <= 0) && (!logHours || parseFloat(logHours) <= 0) && !(showPricing && logCost && parseFloat(logCost) !== (mat.unit_cost || 0))} className="bg-amber-500 text-black font-bold py-2 px-5 rounded-lg text-xs uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30">
+                                                Submit
+                                              </button>
+                                            </div>
+                                            {showPricing && (
+                                              <div className="mt-3 pt-3 border-t border-white/10">
+                                                <label className="text-[9px] font-bold uppercase tracking-widest opacity-60 block mb-1">💰 Unit Cost ($)</label>
+                                                <input
+                                                  type="number"
+                                                  value={logCost}
+                                                  onChange={(e) => setLogCost(e.target.value)}
+                                                  placeholder="e.g. 25.00"
+                                                  className="w-full bg-black/40 border border-emerald-500/40 rounded-lg py-2 px-3 text-sm font-bold text-emerald-400 focus:border-emerald-400 outline-none"
+                                                  min="0"
+                                                  step="0.01"
+                                                />
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              {/* Add Add-On Form */}
+                              <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 space-y-3">
+                                <div className="text-[10px] font-bold uppercase tracking-widest text-amber-400">Add Change Order / Add-On Material</div>
+                                <div className={`grid ${showPricing ? 'grid-cols-[2fr_1fr_1fr_1fr]' : 'grid-cols-[2fr_1fr_1fr]'} gap-3`}>
+                                  <input type="text" value={matName} onChange={(e) => setMatName(e.target.value)} placeholder="Material name" className="bg-black/40 border border-white/20 rounded-xl py-2.5 px-4 focus:border-amber-400 outline-none transition-colors text-sm" />
+                                  <input type="number" value={matQty} onChange={(e) => setMatQty(e.target.value)} placeholder="Quantity" className="bg-black/40 border border-white/20 rounded-xl py-2.5 px-4 focus:border-amber-400 outline-none transition-colors text-sm" min="1" step="1" />
+                                  <input type="number" value={matLaborPerUnit} onChange={(e) => setMatLaborPerUnit(e.target.value)} placeholder="Labor hrs/unit" className="bg-black/40 border border-white/20 rounded-xl py-2.5 px-4 focus:border-amber-400 outline-none transition-colors text-sm" min="0" step="0.1" />
+                                  {showPricing && <input type="number" value={matCost} onChange={(e) => setMatCost(e.target.value)} placeholder="$ Cost/unit" className="bg-black/40 border border-white/20 rounded-xl py-2.5 px-4 focus:border-amber-400 outline-none transition-colors text-sm" min="0" step="0.01" />}
+                                </div>
+                                <button type="button" onClick={() => handleAddMaterial(true)} disabled={!matName || !matQty} className="w-full bg-amber-500 text-black font-bold py-2.5 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30 text-xs uppercase tracking-wider flex items-center justify-center gap-2">
+                                  <PlusCircle size={14} /> Add Change Order
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold uppercase tracking-widest">Project Name</label>
-                          <input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 focus:border-dashboard-accent outline-none transition-colors"
-                            required
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
+                      ) : (
+                        <div className="space-y-4">
                           <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest">Lead Name</label>
+                            <label className="text-[10px] font-bold uppercase tracking-widest">Project Name</label>
                             <input
                               type="text"
-                              value={leadName}
-                              onChange={(e) => setLeadName(e.target.value)}
-                              className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 focus:border-dashboard-accent outline-none transition-colors"
-                              placeholder="e.g. John Doe"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest">Est. Labor Hours</label>
-                            <input
-                              type="number"
-                              value={estLabor}
-                              onChange={(e) => setEstLabor(e.target.value)}
+                              value={name}
+                              onChange={(e) => setName(e.target.value)}
                               className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 focus:border-dashboard-accent outline-none transition-colors"
                               required
                             />
                           </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-bold uppercase tracking-widest">Lead Name</label>
+                              <input
+                                type="text"
+                                value={leadName}
+                                onChange={(e) => setLeadName(e.target.value)}
+                                className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 focus:border-dashboard-accent outline-none transition-colors"
+                                placeholder="e.g. John Doe"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-bold uppercase tracking-widest">Est. Labor Hours</label>
+                              <input
+                                type="number"
+                                value={estLabor}
+                                onChange={(e) => setEstLabor(e.target.value)}
+                                className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 focus:border-dashboard-accent outline-none transition-colors"
+                                required
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-bold uppercase tracking-widest">Est. Other Direct Cost ($)</label>
+                              <input
+                                type="number"
+                                value={estOdc}
+                                onChange={(e) => setEstOdc(e.target.value)}
+                                className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 focus:border-dashboard-accent outline-none transition-colors"
+                                placeholder="0.00"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-bold uppercase tracking-widest">Project Deadline</label>
+                              <input
+                                type="date"
+                                value={deadline}
+                                onChange={(e) => setDeadline(e.target.value)}
+                                className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 focus:border-dashboard-accent outline-none transition-colors"
+                              />
+                            </div>
+                          </div>
+                          {!selectedProject.completed_at && (
+                            <div className="pt-4 flex justify-end">
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  if (!confirm('Mark this project as completed? It will be removed from the dashboard in 30 days.')) return;
+                                  setIsUpdating(true);
+                                  try {
+                                    await fetch(`/api/projects/${selectedProject.id}`, {
+                                      method: 'PUT',
+                                      headers: authHeaders(),
+                                      body: JSON.stringify({ completed_at: new Date().toISOString() }),
+                                    });
+                                    setSelectedProject(null);
+                                  } catch (err) {
+                                    console.error('Failed to complete project', err);
+                                  } finally {
+                                    setIsUpdating(false);
+                                  }
+                                }}
+                                className="flex items-center gap-2 px-4 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-emerald-500/30 transition-all"
+                              >
+                                <CheckCircle2 size={14} />
+                                Mark Completed
+                              </button>
+                            </div>
+                          )}
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest">Est. Other Direct Cost ($)</label>
-                            <input
-                              type="number"
-                              value={estOdc}
-                              onChange={(e) => setEstOdc(e.target.value)}
-                              className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 focus:border-dashboard-accent outline-none transition-colors"
-                              placeholder="0.00"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest">Project Deadline</label>
-                            <input
-                              type="date"
-                              value={deadline}
-                              onChange={(e) => setDeadline(e.target.value)}
-                              className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 focus:border-dashboard-accent outline-none transition-colors"
-                            />
-                          </div>
-                        </div>
-                        {!selectedProject.completed_at && (
-                          <div className="pt-4 flex justify-end">
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                if (!confirm('Mark this project as completed? It will be removed from the dashboard in 30 days.')) return;
-                                setIsUpdating(true);
-                                try {
-                                  await fetch(`/api/projects/${selectedProject.id}`, {
-                                    method: 'PUT',
-                                    headers: authHeaders(),
-                                    body: JSON.stringify({ completed_at: new Date().toISOString() }),
-                                  });
-                                  setSelectedProject(null);
-                                } catch (err) {
-                                  console.error('Failed to complete project', err);
-                                } finally {
-                                  setIsUpdating(false);
-                                }
-                              }}
-                              className="flex items-center gap-2 px-4 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-emerald-500/30 transition-all"
-                            >
-                              <CheckCircle2 size={14} />
-                              Mark Completed
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                      )}
 
-                    <div className="flex gap-3">
+                      <div className="flex gap-3">
+                        <button
+                          disabled={isUpdating}
+                          className="flex-1 bg-dashboard-accent text-black font-bold py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                          {isUpdating ? 'Syncing...' : 'Save Changes'}
+                        </button>
+                      </div>
+                    </form>
+
+                    {/* Delete button — intentionally OUTSIDE the form to avoid submit interference */}
+                    <div className="mt-3">
                       <button
                         type="button"
-                        onClick={() => handleDelete(selectedProject.id)}
-                        className="px-6 py-4 bg-red-500/10 border border-red-500/30 text-red-400 font-bold rounded-xl hover:bg-red-500/20 active:scale-[0.98] transition-all text-xs uppercase tracking-wider"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDelete(selectedProject.id);
+                        }}
+                        className="w-full px-6 py-4 bg-red-500/10 border border-red-500/30 text-red-400 font-bold rounded-xl hover:bg-red-500/20 active:scale-[0.98] transition-all text-xs uppercase tracking-wider"
                       >
-                        Delete
-                      </button>
-                      <button
-                        disabled={isUpdating}
-                        className="flex-1 bg-dashboard-accent text-black font-bold py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                      >
-                        {isUpdating ? 'Syncing...' : 'Save Changes'}
+                        Delete Project
                       </button>
                     </div>
-                  </form>
+                  </>
                 )}
               </div>
             </motion.div>
