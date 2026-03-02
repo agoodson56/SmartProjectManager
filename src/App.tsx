@@ -523,20 +523,31 @@ export default function App() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this project? This will also delete all materials.')) return;
+    console.log('[DELETE] handleDelete called with id:', id);
+    if (!confirm('Are you sure you want to delete this project? This will also delete all materials.')) {
+      console.log('[DELETE] User cancelled confirm dialog');
+      return;
+    }
+    console.log('[DELETE] User confirmed. Making DELETE request to /api/projects/' + id);
     try {
       const res = await fetch(`/api/projects/${id}`, { method: 'DELETE', headers: authHeaders() });
+      console.log('[DELETE] Response status:', res.status, res.statusText);
+      const responseText = await res.text();
+      console.log('[DELETE] Response body:', responseText);
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        alert((data as any)?.error || 'Failed to delete project');
+        let errorMsg = 'Failed to delete project';
+        try { errorMsg = JSON.parse(responseText)?.error || errorMsg; } catch { }
+        alert('Delete failed: ' + errorMsg);
         return;
       }
+      console.log('[DELETE] Success! Navigating to dashboard...');
+      alert('Project deleted successfully!');
       setSelectedProject(null);
       setView('dashboard');
       fetchProjects(authToken!);
-    } catch (err) {
-      console.error('Failed to delete project', err);
-      alert('Failed to delete project. Please try again.');
+    } catch (err: any) {
+      console.error('[DELETE] Network error:', err);
+      alert('Delete failed (network error): ' + err.message);
     }
   };
 
