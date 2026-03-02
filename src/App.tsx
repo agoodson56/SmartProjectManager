@@ -60,6 +60,7 @@ export default function App() {
   const [createStep, setCreateStep] = useState<1 | 2>(1);
   const [wizardMaterials, setWizardMaterials] = useState<{ name: string; quantity: number; labor_hours_per_unit: number; selected: boolean }[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   // Material state
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -523,31 +524,24 @@ export default function App() {
   };
 
   const handleDelete = async (id: number) => {
-    console.log('[DELETE] handleDelete called with id:', id);
-    if (!confirm('Are you sure you want to delete this project? This will also delete all materials.')) {
-      console.log('[DELETE] User cancelled confirm dialog');
-      return;
-    }
-    console.log('[DELETE] User confirmed. Making DELETE request to /api/projects/' + id);
+    console.log('[DELETE] Executing delete for id:', id);
+    setConfirmingDelete(false);
     try {
       const res = await fetch(`/api/projects/${id}`, { method: 'DELETE', headers: authHeaders() });
-      console.log('[DELETE] Response status:', res.status, res.statusText);
-      const responseText = await res.text();
-      console.log('[DELETE] Response body:', responseText);
+      console.log('[DELETE] Response:', res.status);
       if (!res.ok) {
+        const responseText = await res.text();
         let errorMsg = 'Failed to delete project';
         try { errorMsg = JSON.parse(responseText)?.error || errorMsg; } catch { }
         alert('Delete failed: ' + errorMsg);
         return;
       }
-      console.log('[DELETE] Success! Navigating to dashboard...');
-      alert('Project deleted successfully!');
       setSelectedProject(null);
       setView('dashboard');
       fetchProjects(authToken!);
     } catch (err: any) {
-      console.error('[DELETE] Network error:', err);
-      alert('Delete failed (network error): ' + err.message);
+      console.error('[DELETE] Error:', err);
+      alert('Delete failed: ' + err.message);
     }
   };
 
@@ -2501,19 +2495,34 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                       </div>
                     </form>
 
-                    {/* Delete button — intentionally OUTSIDE the form to avoid submit interference */}
+                    {/* Delete — two-step: first click shows confirm, second click deletes */}
                     <div className="mt-3">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleDelete(selectedProject.id);
-                        }}
-                        className="w-full px-6 py-4 bg-red-500/10 border border-red-500/30 text-red-400 font-bold rounded-xl hover:bg-red-500/20 active:scale-[0.98] transition-all text-xs uppercase tracking-wider"
-                      >
-                        Delete Project
-                      </button>
+                      {confirmingDelete ? (
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setConfirmingDelete(false)}
+                            className="flex-1 px-6 py-4 bg-white/5 border border-white/20 text-white font-bold rounded-xl hover:bg-white/10 transition-all text-xs uppercase tracking-wider"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(selectedProject.id)}
+                            className="flex-1 px-6 py-4 bg-red-600 border border-red-500 text-white font-bold rounded-xl hover:bg-red-700 active:scale-[0.98] transition-all text-xs uppercase tracking-wider animate-pulse"
+                          >
+                            ⚠ Yes, Delete Forever
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmingDelete(true)}
+                          className="w-full px-6 py-4 bg-red-500/10 border border-red-500/30 text-red-400 font-bold rounded-xl hover:bg-red-500/20 active:scale-[0.98] transition-all text-xs uppercase tracking-wider"
+                        >
+                          Delete Project
+                        </button>
+                      )}
                     </div>
                   </>
                 )}
