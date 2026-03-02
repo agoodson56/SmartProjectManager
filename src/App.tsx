@@ -23,7 +23,9 @@ import {
   FileSpreadsheet,
   LogOut,
   Lock,
-  KeyRound
+  KeyRound,
+  DollarSign,
+  Pencil
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import { Project, MANAGERS, Manager, User } from './types';
@@ -42,6 +44,11 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const [pendingAction, setPendingAction] = useState<'pm-portal' | 'download' | 'edit-project' | null>(null);
   const [pendingProject, setPendingProject] = useState<Project | null>(null);
+
+  // Company profit state
+  const [companyProfit, setCompanyProfit] = useState('');
+  const [editingProfit, setEditingProfit] = useState(false);
+  const [profitInput, setProfitInput] = useState('');
 
   // App state
   const [projects, setProjects] = useState<Project[]>([]);
@@ -164,10 +171,41 @@ export default function App() {
     }
   }, []);
 
+  // Fetch settings (company profit)
+  const fetchSettings = useCallback(async () => {
+    try {
+      const res = await fetch('/api/settings');
+      if (res.ok) {
+        const data = await res.json() as Record<string, string>;
+        if (data.company_profit) setCompanyProfit(data.company_profit);
+      }
+    } catch (err) {
+      console.error('Failed to fetch settings', err);
+    }
+  }, []);
+
+  // Save company profit (admin only)
+  const saveProfit = useCallback(async (value: string) => {
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ key: 'company_profit', value }),
+      });
+      if (res.ok) {
+        setCompanyProfit(value);
+      }
+    } catch (err) {
+      console.error('Failed to save profit', err);
+    }
+  }, [authHeaders]);
+
   // Load public projects immediately + restore session if token exists
   useEffect(() => {
     // Always load public dashboard data
     fetchPublicProjects();
+    // Always load settings
+    fetchSettings();
 
     // Try to restore existing session
     const checkSession = async () => {
@@ -197,7 +235,7 @@ export default function App() {
       }
     };
     checkSession();
-  }, [fetchProjects, fetchPublicProjects]);
+  }, [fetchProjects, fetchPublicProjects, fetchSettings]);
 
   // Refresh projects periodically
   useEffect(() => {
@@ -361,15 +399,8 @@ export default function App() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (createStep === 1) {
-      // Move to step 2 for material upload
-      setCreateStep(2);
-      return;
-    }
-    // Step 2: Create project with materials
     setIsUpdating(true);
     try {
-      const selectedMats = wizardMaterials.filter(m => m.selected && m.name);
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: authHeaders(),
@@ -377,21 +408,14 @@ export default function App() {
           name,
           manager,
           lead_name: leadName,
+          est_labor_hours: parseFloat(estLabor) || 0,
           est_material_cost: 0,
           est_odc: parseFloat(estOdc) || 0,
           deadline: deadline || null,
-          materials: selectedMats.map(m => ({
-            name: m.name,
-            quantity: m.quantity,
-            labor_hours_per_unit: m.labor_hours_per_unit,
-            is_addon: false,
-          })),
         }),
       });
       if (res.ok) {
         setIsCreating(false);
-        setCreateStep(1);
-        setWizardMaterials([]);
         fetchProjects(authToken!);
         setName('');
         setManager('Cos');
@@ -429,7 +453,22 @@ export default function App() {
     setIsUpdating(true);
     try {
       let payload;
-      if (editMode === 'details') {
+      if (editMode === 'progress') {
+        const currentLabor = selectedProject.used_labor_hours;
+
+        const laborToAdd = parseFloat(addLabor) || 0;
+        const odcToAdd = parseFloat(addOdc) || 0;
+
+        // If they used the "New Total" fields, use those. Otherwise, add the incremental values.
+        const finalLabor = usedLabor !== currentLabor.toString() ? (parseFloat(usedLabor) || 0) : currentLabor + laborToAdd;
+        const currentOdc = selectedProject.used_odc;
+        const finalOdc = usedOdc !== currentOdc.toString() ? (parseFloat(usedOdc) || 0) : currentOdc + odcToAdd;
+
+        payload = {
+          used_labor_hours: finalLabor,
+          used_odc: finalOdc,
+        };
+      } else {
         payload = {
           name,
           manager,
@@ -437,14 +476,6 @@ export default function App() {
           est_labor_hours: parseFloat(estLabor) || 0,
           est_odc: parseFloat(estOdc) || 0,
           deadline: deadline || null,
-        };
-      } else {
-        // ODC update only
-        const odcToAdd = parseFloat(addOdc) || 0;
-        const currentOdc = selectedProject.used_odc;
-        const finalOdc = usedOdc !== currentOdc.toString() ? (parseFloat(usedOdc) || 0) : currentOdc + odcToAdd;
-        payload = {
-          used_odc: finalOdc,
         };
       }
 
@@ -456,7 +487,9 @@ export default function App() {
       if (res.ok) {
         setSelectedProject(null);
         fetchProjects(authToken!);
+        setUsedLabor('');
         setUsedOdc('');
+        setAddLabor('');
         setAddOdc('');
         setName('');
         setLeadName('');
@@ -507,6 +540,7 @@ export default function App() {
           name: matName,
           quantity: parseFloat(matQty) || 0,
           labor_hours_per_unit: parseFloat(matLaborPerUnit) || 0,
+          unit_cost: parseFloat(matCost) || 0,
           is_addon: isAddon,
         }),
       });
@@ -514,8 +548,8 @@ export default function App() {
         setMatName('');
         setMatQty('');
         setMatLaborPerUnit('');
+        setMatCost('');
         fetchMaterials(selectedProject.id, authToken!);
-        fetchProjects(authToken!);
       } else {
         const err = await res.json() as any;
         alert(err.error || 'Failed to add material');
@@ -529,9 +563,14 @@ export default function App() {
     if (!selectedProject) return;
     const addQty = parseFloat(logQty) || 0;
     const addHours = parseFloat(logHours) || 0;
-    if (addQty <= 0 && addHours <= 0) return;
+    const costVal = parseFloat(logCost);
+    const hasCostChange = !isNaN(costVal);
+    if (addQty <= 0 && addHours <= 0 && !hasCostChange) return;
     try {
       const body: any = { add_qty: addQty, add_hours: addHours };
+      if (hasCostChange) {
+        body.unit_cost = costVal;
+      }
       const res = await fetch(`/api/projects/${selectedProject.id}/materials/${materialId}`, {
         method: 'PUT',
         headers: authHeaders(),
@@ -541,6 +580,7 @@ export default function App() {
         setLogMaterialId(null);
         setLogQty('');
         setLogHours('');
+        setLogCost('');
         fetchMaterials(selectedProject.id, authToken!);
         fetchProjects(authToken!);
       }
@@ -577,7 +617,21 @@ export default function App() {
     }
   };
 
-
+  // --- Edit material cost inline ---
+  const handleUpdateMaterialCost = async (materialId: number, newCost: number) => {
+    if (!selectedProject) return;
+    try {
+      await fetch(`/api/projects/${selectedProject.id}/materials/${materialId}`, {
+        method: 'PATCH',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ unit_cost: newCost }),
+      });
+      fetchMaterials(selectedProject.id, authToken!);
+    } catch (err) {
+      console.error('Failed to update material cost', err);
+    }
+    setEditingCostId(null);
+  };
 
   // --- Proposal Upload & AI Extraction ---
   const handleProposalUpload = async (file: File) => {
@@ -960,11 +1014,64 @@ If you truly cannot find ANY materials in the document, return an empty array: [
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="border-b border-dashboard-line p-6 flex items-center justify-between bg-dashboard-bg/80 backdrop-blur-md sticky top-0 z-10">
-        <img
-          src="/logo.png"
-          alt="3D Smart Project Manager"
-          className="h-16 w-auto object-contain drop-shadow-[0_2px_8px_rgba(212,175,55,0.3)]"
-        />
+        <div className="flex items-center gap-5">
+          <img
+            src="/logo.png"
+            alt="3D Smart Project Manager"
+            className="h-16 w-auto object-contain drop-shadow-[0_2px_8px_rgba(212,175,55,0.3)]"
+          />
+
+          {/* Company Profit Badge */}
+          {editingProfit ? (
+            <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-2">
+              <DollarSign size={16} className="text-emerald-400" />
+              <input
+                autoFocus
+                type="text"
+                value={profitInput}
+                onChange={e => setProfitInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    saveProfit(profitInput);
+                    setEditingProfit(false);
+                  } else if (e.key === 'Escape') {
+                    setEditingProfit(false);
+                  }
+                }}
+                onBlur={() => {
+                  saveProfit(profitInput);
+                  setEditingProfit(false);
+                }}
+                className="bg-transparent border-b border-emerald-400/50 text-emerald-300 font-bold text-lg w-32 outline-none placeholder:text-emerald-400/30"
+                placeholder="0"
+              />
+            </div>
+          ) : (
+            <div
+              className={cn(
+                "flex items-center gap-2 rounded-xl px-4 py-2 transition-all",
+                "bg-emerald-500/10 border border-emerald-500/30",
+                currentUser?.role === 'admin' && "cursor-pointer hover:bg-emerald-500/20 hover:border-emerald-400/50"
+              )}
+              onClick={() => {
+                if (currentUser?.role === 'admin') {
+                  setProfitInput(companyProfit);
+                  setEditingProfit(true);
+                }
+              }}
+              title={currentUser?.role === 'admin' ? 'Click to edit company profit' : 'Company Profit'}
+            >
+              <DollarSign size={16} className="text-emerald-400" />
+              <div>
+                <div className="text-[9px] uppercase tracking-widest text-emerald-400/70 font-bold leading-none mb-0.5">Company Profit</div>
+                <div className="text-emerald-300 font-bold text-lg leading-none tracking-tight">
+                  ${companyProfit ? Number(companyProfit).toLocaleString() : '0'}
+                </div>
+              </div>
+              {currentUser?.role === 'admin' && <Pencil size={12} className="text-emerald-400/50 ml-1" />}
+            </div>
+          )}
+        </div>
 
         <nav className="flex items-center gap-4">
           <button
