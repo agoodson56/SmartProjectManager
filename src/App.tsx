@@ -524,11 +524,9 @@ export default function App() {
   };
 
   const handleDelete = async (id: number) => {
-    console.log('[DELETE] Executing delete for id:', id);
     setConfirmingDelete(false);
     try {
       const res = await fetch(`/api/projects/${id}`, { method: 'DELETE', headers: authHeaders() });
-      console.log('[DELETE] Response:', res.status);
       if (!res.ok) {
         const responseText = await res.text();
         let errorMsg = 'Failed to delete project';
@@ -540,7 +538,6 @@ export default function App() {
       setView('dashboard');
       fetchProjects(authToken!);
     } catch (err: any) {
-      console.error('[DELETE] Error:', err);
       alert('Delete failed: ' + err.message);
     }
   };
