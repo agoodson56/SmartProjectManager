@@ -14,6 +14,7 @@ import {
   Trash2,
   Boxes,
   ChevronRight,
+  ArrowLeft,
   Settings2,
   Monitor,
   CheckCircle2,
@@ -1511,15 +1512,26 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                     <Settings2 className="text-dashboard-accent" />
                     Project Manager Portal
                   </h2>
-                  {!selectedProject && !isCreating && (
-                    <button
-                      onClick={() => setIsCreating(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-dashboard-accent text-black rounded-lg text-xs font-bold uppercase tracking-wider hover:scale-105 transition-transform"
-                    >
-                      <PlusCircle size={14} />
-                      New Project
-                    </button>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {!selectedProject && !isCreating && (
+                      <button
+                        onClick={() => setView('dashboard')}
+                        className="flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-white/20 transition-all"
+                      >
+                        <ArrowLeft size={14} />
+                        Dashboard
+                      </button>
+                    )}
+                    {!selectedProject && !isCreating && (
+                      <button
+                        onClick={() => setIsCreating(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-dashboard-accent text-black rounded-lg text-xs font-bold uppercase tracking-wider hover:scale-105 transition-transform"
+                      >
+                        <PlusCircle size={14} />
+                        New Project
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {isCreating ? (
@@ -1529,8 +1541,9 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                       <button
                         type="button"
                         onClick={() => setIsCreating(false)}
-                        className="text-xs hover:underline"
+                        className="flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-white/20 transition-all"
                       >
+                        <ArrowLeft size={14} />
                         Back to List
                       </button>
                     </div>
@@ -1656,8 +1669,9 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                       <button
                         type="button"
                         onClick={() => setSelectedProject(null)}
-                        className="text-xs hover:underline"
+                        className="flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-white/20 transition-all"
                       >
+                        <ArrowLeft size={14} />
                         Back to List
                       </button>
                     </div>
