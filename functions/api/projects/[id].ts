@@ -79,9 +79,13 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
         const id = context.params.id;
 
-        // Authorization: only admin can delete
-        if (user.role !== "admin") {
-            return jsonResponse({ error: "Only admins can delete projects" }, 403);
+        // Authorization: admin can delete any, managers can delete their own
+        const existing = await context.env.DB.prepare("SELECT manager FROM projects WHERE id = ?").bind(id).first<{ manager: string }>();
+        if (!existing) {
+            return jsonResponse({ error: "Project not found" }, 404);
+        }
+        if (user.role !== "admin" && existing.manager !== user.username) {
+            return jsonResponse({ error: "You can only delete your own projects" }, 403);
         }
 
         // Cascade: delete associated materials first
