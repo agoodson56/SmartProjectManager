@@ -1017,7 +1017,7 @@ If you truly cannot find ANY materials in the document, return an empty array: [
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="border-b border-dashboard-line p-6 flex items-center justify-between bg-dashboard-bg/80 backdrop-blur-md sticky top-0 z-10">
+      <header className="group/header border-b border-dashboard-line p-6 flex items-center justify-between bg-dashboard-bg/80 backdrop-blur-md sticky top-0 z-10">
         <div className="flex items-center gap-5">
           <img
             src="/logo.png"
@@ -1025,7 +1025,7 @@ If you truly cannot find ANY materials in the document, return an empty array: [
             className="h-16 w-auto object-contain drop-shadow-[0_2px_8px_rgba(212,175,55,0.3)]"
           />
 
-          {/* Company Profit Badge */}
+          {/* Company Profit Badge — always visible */}
           {editingProfit ? (
             <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-2">
               <DollarSign size={16} className="text-emerald-400" />
@@ -1077,7 +1077,8 @@ If you truly cannot find ANY materials in the document, return an empty array: [
           )}
         </div>
 
-        <nav className="flex items-center gap-4">
+        {/* Nav — hidden by default, fades in on header hover */}
+        <nav className="flex items-center gap-4 opacity-0 group-hover/header:opacity-100 transition-opacity duration-300">
           <button
             onClick={() => isLoggedIn ? handleDownloadReport() : requireLogin('download')}
             className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition-all"
