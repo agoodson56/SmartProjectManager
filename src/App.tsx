@@ -523,13 +523,20 @@ export default function App() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this project?')) return;
+    if (!confirm('Are you sure you want to delete this project? This will also delete all materials.')) return;
     try {
-      await fetch(`/api/projects/${id}`, { method: 'DELETE', headers: authHeaders() });
+      const res = await fetch(`/api/projects/${id}`, { method: 'DELETE', headers: authHeaders() });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert((data as any)?.error || 'Failed to delete project');
+        return;
+      }
       setSelectedProject(null);
+      setView('dashboard');
       fetchProjects(authToken!);
     } catch (err) {
       console.error('Failed to delete project', err);
+      alert('Failed to delete project. Please try again.');
     }
   };
 

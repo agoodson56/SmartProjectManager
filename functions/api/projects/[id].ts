@@ -84,6 +84,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
             return jsonResponse({ error: "Only admins can delete projects" }, 403);
         }
 
+        // Cascade: delete associated materials first
+        await context.env.DB.prepare("DELETE FROM materials WHERE project_id = ?").bind(id).run();
         await context.env.DB.prepare("DELETE FROM projects WHERE id = ?").bind(id).run();
         return jsonResponse({ success: true });
     } catch (err) {
