@@ -940,6 +940,26 @@ If you truly cannot find ANY materials in the document, return an empty array: [
           }),
         });
       }
+
+      // Recalculate project est_labor_hours from ALL materials (including newly imported)
+      const matsRes = await fetch(`/api/projects/${selectedProject.id}/materials`, {
+        headers: authHeaders(),
+      });
+      if (matsRes.ok) {
+        const allMats = await matsRes.json() as any[];
+        const totalLaborFromMaterials = allMats.reduce(
+          (sum: number, m: any) => sum + ((m.quantity || 0) * (m.labor_hours_per_unit || 0)), 0
+        );
+        // Update project est_labor_hours to match material totals
+        await fetch(`/api/projects/${selectedProject.id}`, {
+          method: 'PUT',
+          headers: authHeaders(),
+          body: JSON.stringify({
+            est_labor_hours: Math.round(totalLaborFromMaterials * 100) / 100,
+          }),
+        });
+      }
+
       setProposalMaterials([]);
       setProposalAsAddon(false);
       fetchMaterials(selectedProject.id, authToken);
