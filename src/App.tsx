@@ -414,7 +414,7 @@ export default function App() {
           name,
           manager,
           lead_name: leadName,
-          est_labor_hours: parseFloat(estLabor) || 0,
+          est_labor_hours: 0,
           est_material_cost: 0,
           est_odc: parseFloat(estOdc) || 0,
           deadline: deadline || null,
@@ -1696,20 +1696,7 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold uppercase tracking-widest">Est. Labor Hours</label>
-                          <input
-                            type="number"
-                            value={estLabor}
-                            onChange={(e) => setEstLabor(e.target.value)}
-                            className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 focus:border-dashboard-accent outline-none transition-colors"
-                            placeholder="0"
-                            required
-                          />
-                        </div>
 
-                      </div>
 
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold uppercase tracking-widest">Est. Other Direct Cost ($)</label>
@@ -2586,16 +2573,6 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                                 onChange={(e) => setLeadName(e.target.value)}
                                 className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 focus:border-dashboard-accent outline-none transition-colors"
                                 placeholder="e.g. John Doe"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <label className="text-[10px] font-bold uppercase tracking-widest">Est. Labor Hours</label>
-                              <input
-                                type="number"
-                                value={estLabor}
-                                onChange={(e) => setEstLabor(e.target.value)}
-                                className="w-full bg-black/40 border border-white/20 rounded-xl py-3 px-4 focus:border-dashboard-accent outline-none transition-colors"
-                                required
                               />
                             </div>
                           </div>
