@@ -925,6 +925,22 @@ If you truly cannot find ANY materials in the document, return an empty array: [
     if (!selectedProject || !authToken) return;
     const toImport = proposalMaterials.filter(m => m.selected && m.name);
     if (toImport.length === 0) return;
+
+    // If project already has materials, ask whether to clear first
+    if (materials.length > 0) {
+      const shouldClear = confirm(
+        `This project already has ${materials.length} materials.\n\n` +
+        `Click OK to REPLACE existing materials with the new import.\n` +
+        `Click Cancel to ADD these on top of existing materials (e.g., additional floors).`
+      );
+      if (shouldClear) {
+        await fetch(`/api/projects/${selectedProject.id}/materials`, {
+          method: 'DELETE',
+          headers: authHeaders(),
+        });
+      }
+    }
+
     setProposalLoading(true);
     try {
       for (const mat of toImport) {
