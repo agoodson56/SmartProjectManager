@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Material } from './types';
+import { MATERIALS_LIBRARY } from './materialsLibrary';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
 import {
@@ -724,7 +725,15 @@ export default function App() {
       // Determine if this file is likely a floorplan/blueprint (image or PDF)
       const isVisualFile = !!inlineData && (ext === 'pdf' || mimeMap[ext]?.startsWith('image/'));
 
+      // Build compact materials reference from our 717-item NECA library
+      const libraryRef = MATERIALS_LIBRARY.map(m => `${m.name}|${m.labor_hours_per_unit}|${m.system}`).join('\n');
+
       const floorplanPrompt = `You are an expert low-voltage construction estimator specializing in reading architectural floor plans and construction blueprints. You MUST analyze this drawing using the following MULTI-PASS STRATEGY to achieve maximum accuracy.
+
+=== MATERIALS REFERENCE DATABASE (NECA Labor Hours) ===
+Use the EXACT material names and labor_hours_per_unit values from this reference when possible.
+Format: Name|Labor_Hours_Per_Unit|System
+${libraryRef}
 
 === PASS 1: IDENTIFY SHEET TYPE & LEGEND ===
 First, determine the sheet type:
