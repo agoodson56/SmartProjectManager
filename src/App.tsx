@@ -80,7 +80,7 @@ export default function App() {
 
 
   // Proposal upload state
-  const [proposalMaterials, setProposalMaterials] = useState<{ name: string; quantity: number; labor_hours_per_unit: number; selected: boolean }[]>([]);
+  const [proposalMaterials, setProposalMaterials] = useState<{ name: string; quantity: number; labor_hours_per_unit: number; system: string; selected: boolean }[]>([]);
   const [proposalLoading, setProposalLoading] = useState(false);
   const [proposalError, setProposalError] = useState('');
   const [proposalAsAddon, setProposalAsAddon] = useState(false);
@@ -721,13 +721,103 @@ export default function App() {
         }
       }
 
-      const systemPrompt = `You are a senior low-voltage / telecom / construction project estimator. Your job is to analyze ANY document — proposals, BOMs, quotes, emails, scope of work, spreadsheet exports, images of handwritten notes, blueprints, floor plans, photos of material labels, or any other format — and extract every material, equipment item, or supply mentioned.
+      // Determine if this file is likely a floorplan/blueprint (image or PDF)
+      const isVisualFile = !!inlineData && (ext === 'pdf' || mimeMap[ext]?.startsWith('image/'));
+
+      const floorplanPrompt = `You are an expert low-voltage construction estimator specializing in reading architectural floor plans and construction blueprints. You MUST analyze this drawing using the following MULTI-PASS STRATEGY to achieve maximum accuracy.
+
+=== PASS 1: IDENTIFY SHEET TYPE & LEGEND ===
+First, determine the sheet type:
+- FLOOR_PLAN: Shows room layouts, walls, doors, device symbols → COUNT DEVICES HERE
+- LEGEND/SYMBOL SCHEDULE: Reference-only, DO NOT count symbols on legend sheets
+- SCHEDULE/RISER: Equipment lists → note but don't double-count
+- DETAIL/TITLE: Skip entirely
+
+Extract all symbol meanings from any visible legend (e.g., "circle with dot = smoke detector").
+
+=== PASS 2: 3×3 GRID SPATIAL COUNTING ===
+Mentally divide the floor plan into a 3×3 GRID (9 zones). For EACH zone, independently count every device symbol. This prevents "attentional blink" — missing symbols because they are close together or in repeating patterns.
+- Count each SEPARATE instance (e.g., in a multi-unit building, count every unit)
+- EXCLUDE legend boxes and title blocks from counting
+- Track subtotals per zone, then sum for the grand total
+
+=== PASS 3: VALIDATE & DERIVE INFRASTRUCTURE ===
+Verify your zone-by-zone counts match the full-sheet total. Then derive ALL infrastructure materials.
+
+=== ALL 6 LOW-VOLTAGE SYSTEMS TO DETECT ===
+You MUST identify devices from ALL of these systems:
+
+1. STRUCTURED CABLING (system: "STRUCTURED CABLING")
+   - Data outlets / RJ45 drops, Voice outlets, WAPs (Wireless Access Points), Fiber drops
+   - DERIVED: Cable boxes (qty ÷ 24 runs per 1000ft box), J-hooks (total cable ft ÷ 5ft spacing ÷ 25 per box), Patch panels (drops ÷ 24 ports), Faceplates (drops ÷ 2 ports), Cable labels, Velcro
+   - Cable formula: Each drop = avg 100ft run + 10ft service loop + 10% slack = ~121ft per drop
+
+2. CCTV / SECURITY CAMERAS (system: "CCTV")
+   - IP cameras (dome, bullet, PTZ, turret), NVR/DVR, Video monitors
+   - DERIVED: Cat6 cable for IP cameras, PoE switches, Camera mounting hardware
+
+3. ACCESS CONTROL (system: "ACCESS CONTROL")
+   - Card readers, REX (Request to Exit) sensors, Electric strikes, Mag locks, Door contacts
+   - DERIVED: 18/4 shielded cable (readers), 22/6 shielded cable (REX/contacts), Access control panel
+
+4. AUDIO/VISUAL - A/V (system: "AV")
+   - Speakers (ceiling/wall), Displays/TVs, Projectors, Amplifiers, Volume controls, DSP
+   - DERIVED: 18/2 speaker wire, Cat6 for networked AV devices
+
+5. INTRUSION DETECTION (system: "INTRUSION")
+   - Motion detectors (PIR), Glass break sensors, Door/window contacts, Keypads, Sirens
+   - DERIVED: 22/4 shielded cable, Intrusion panel
+
+6. FIRE ALARM (system: "FIRE ALARM")
+   - Smoke detectors, Heat detectors, Pull stations, Horn/strobes, Duct detectors, FACP
+   - DERIVED: 18/2 FPLP cable (SLC loops), 14/2 FPLP cable (NAC circuits), Fire alarm panel
+
+7. INFRASTRUCTURE (system: "INFRASTRUCTURE")
+   - Items that support ALL systems: Racks/cabinets, Conduit, Cable tray, Backboards, Firestopping, Grounding, Labels
+
+=== LABOR BENCHMARKS (NECA ELECTRICAL LABOR BOOK) ===
+Use NECA (National Electrical Contractors Association) labor unit standards:
+- Cable pulling: 125 ft/hour (Cat6A standard)
+- Drop termination: 5 drops/hour (0.2h each)
+- Testing & certification: 8 drops/hour (0.125h each)
+- Individual cable drop (pull + term + test): 0.75h per drop
+- Camera mounting: 1.0h each
+- Card reader install: 1.0h each
+- Smoke/heat detector: 0.5h each
+- Horn/strobe: 0.75h each
+- Pull station: 0.5h each
+- Speaker install: 0.5h each
+- Motion detector: 0.5h each
+- Glass break sensor: 0.3h each
+- Door contact: 0.25h each
+- Patch panel (24-port): 1.5h each
+- Rack/cabinet: 3.0h each
+- J-hooks (box of 25): 0.5h
+- Conduit (per 10ft): 1.0h
+- Fire stopping (per penetration): 0.25h
+
+=== OUTPUT FORMAT ===
+Return ONLY a valid JSON array. No markdown, no explanation.
+Each item MUST have: name, quantity, labor_hours_per_unit, system
+Do NOT include pricing or cost data — only material, quantity, and labor.
+
+The "system" field MUST be one of: "STRUCTURED CABLING", "CCTV", "ACCESS CONTROL", "AV", "INTRUSION", "FIRE ALARM", "INFRASTRUCTURE"
+
+Include BOTH detected devices AND derived infrastructure (cables, support hardware, panels).
+Group similar items (don't repeat the same material — combine quantities).
+
+Example:
+[{"name":"Cat6A Data Drops","quantity":150,"labor_hours_per_unit":0.75,"system":"STRUCTURED CABLING"},{"name":"Cat6A Plenum Cable (1000ft box)","quantity":17,"labor_hours_per_unit":5,"system":"STRUCTURED CABLING"},{"name":"J-Hooks (box of 25)","quantity":24,"labor_hours_per_unit":0.5,"system":"INFRASTRUCTURE"},{"name":"IP Dome Camera","quantity":12,"labor_hours_per_unit":1.0,"system":"CCTV"},{"name":"Smoke Detector","quantity":30,"labor_hours_per_unit":0.5,"system":"FIRE ALARM"},{"name":"Card Reader","quantity":8,"labor_hours_per_unit":1.0,"system":"ACCESS CONTROL"}]
+
+If you cannot find ANY devices, return: []`;
+
+      const genericPrompt = `You are a senior low-voltage / telecom / construction project estimator. Your job is to analyze ANY document — proposals, BOMs, quotes, emails, scope of work, spreadsheet exports, images of handwritten notes, photos of material labels, or any other format — and extract every material, equipment item, or supply mentioned.
 
 CRITICAL RULES:
 1. Extract EVERY physical item that gets installed, pulled, mounted, terminated, or consumed on a job site.
 2. Materials include but are not limited to: cables (Cat5e, Cat6, Cat6A, fiber, coax), connectors, jacks, patch panels, faceplates, j-hooks, cable tray, conduit, boxes, racks, cabinets, switches, access points, cameras, speakers, sensors, power supplies, UPS, labels, velcro, zip ties, fire stop, and any other physical items.
 3. If quantities are not explicit, make your best estimate based on context (e.g., "cabling for 200 drops" = 200 drops).
-4. If labor hours are not specified, use these LOW-VOLTAGE INDUSTRY STANDARDS:
+4. If labor hours are not specified, use these NECA ELECTRICAL LABOR BOOK standards:
    - Cable pulling (per 100ft run): 0.5h
    - Individual cable drops / runs: 0.75h each
    - RJ45/Keystone jack termination: 0.15h each
@@ -745,39 +835,23 @@ CRITICAL RULES:
    - Testing & certification (per drop): 0.15h
    - Labeling (per cable): 0.05h
 5. Group similar items together (don't list "Cat6 cable" 10 times — combine into one line with total qty).
-6. If the document mentions dollar amounts / pricing, EXTRACT the unit cost per item. If pricing is given as a total (e.g. "$5,000 for 200 jacks"), calculate the per-unit cost ($25 each).
-7. If no pricing is found, estimate using these INDUSTRY STANDARD material costs:
-   - Cat6 Plenum Cable (1000ft box): $180
-   - Cat6A Plenum Cable (1000ft box): $350
-   - Cat6 RJ45 Keystone Jacks: $3.50 each
-   - Cat6A RJ45 Keystone Jacks: $8 each
-   - 24-Port Patch Panel: $45 each
-   - Single-Gang Faceplate: $2 each
-   - J-Hooks (box of 25): $30
-   - Cable Tray (10ft section): $35
-   - 1" EMT Conduit (10ft): $12
-   - 2-Post Rack: $250
-   - 4-Post Cabinet: $800
-   - Fire Stop Putty Pad: $5 each
-   - Velcro Roll (75ft): $15
-   - Cable Labels (roll of 100): $20
-   - Access Points: $300 each
-   - IP Cameras: $250 each
-   - Network Switch (24-port): $400 each
-   - For other items, use your best professional estimate.
-8. If the document is a project report, budget summary, photo, or scanned image — extract any material references you can find.
-9. For images: look for material labels, part numbers, counts of visible items, floor plan symbols, or any visual clue about materials and quantities.
+6. If the document is a project report, budget summary, photo, or scanned image — extract any material references you can find.
+7. For images: look for material labels, part numbers, counts of visible items, or any visual clue about materials and quantities.
+
+Do NOT include pricing or cost data. Only extract material, quantity, and labor.
 
 For each item, return:
 - name: clear, descriptive material name
 - quantity: number of units
-- labor_hours_per_unit: hours to install ONE unit
-- unit_cost: dollar cost per single unit (number only, no $ sign)
+- labor_hours_per_unit: hours to install ONE unit (per NECA standards)
+- system: one of "STRUCTURED CABLING", "CCTV", "ACCESS CONTROL", "AV", "INTRUSION", "FIRE ALARM", "INFRASTRUCTURE", or "GENERAL"
 
 Return ONLY a valid JSON array. No markdown fences, no explanation.
-Example: [{"name":"Cat6 Plenum Cable (1000ft box)","quantity":5,"labor_hours_per_unit":5,"unit_cost":180},{"name":"Cat6 RJ45 Keystone Jacks","quantity":200,"labor_hours_per_unit":0.15,"unit_cost":3.50}]
+Example: [{"name":"Cat6 Plenum Cable (1000ft box)","quantity":5,"labor_hours_per_unit":5,"system":"STRUCTURED CABLING"},{"name":"Cat6 RJ45 Keystone Jacks","quantity":200,"labor_hours_per_unit":0.15,"system":"STRUCTURED CABLING"}]
 
 If you truly cannot find ANY materials in the document, return an empty array: []`;
+
+      const systemPrompt = isVisualFile ? floorplanPrompt : genericPrompt;
 
       // Build Gemini request parts
       const parts: any[] = [{ text: systemPrompt }];
@@ -792,13 +866,13 @@ If you truly cannot find ANY materials in the document, return an empty array: [
       }
 
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro:generateContent?key=${apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts }],
-            generationConfig: { temperature: 0.1, maxOutputTokens: 16384 },
+            generationConfig: { temperature: 0.1, maxOutputTokens: 32768 },
           }),
         }
       );
@@ -824,7 +898,7 @@ If you truly cannot find ANY materials in the document, return an empty array: [
         name: String(item.name || item.material || item.description || 'Unknown').trim(),
         quantity: Math.max(1, parseFloat(item.quantity || item.qty || 1) || 1),
         labor_hours_per_unit: Math.max(0, parseFloat(item.labor_hours_per_unit || item.labor_hours || item.hours || item.labor || 0) || 0),
-        unit_cost: Math.max(0, parseFloat(item.unit_cost || item.cost || item.price || item.unit_price || 0) || 0),
+        system: String(item.system || 'GENERAL').toUpperCase().trim(),
         selected: true,
       })).filter((m: { name: string }) => m.name && m.name !== 'Unknown');
 
@@ -1838,8 +1912,20 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                                     <Upload size={20} className="text-violet-400" />
                                   </div>
                                   <div className="text-center">
-                                    <div className="text-sm font-bold text-violet-400">Upload Any Document</div>
-                                    <div className="text-[10px] opacity-50 mt-1">Excel • PDF • Word • Images • CSV • Any file — AI will extract materials & labor hours</div>
+                                    <div className="text-sm font-bold text-violet-400">Upload Document or Floorplan</div>
+                                    <div className="text-[10px] opacity-50 mt-1">Floorplans • Blueprints • PDF • Excel • Images • CSV — AI extracts complete material list & labor for all 6 LV systems</div>
+                                    <div className="flex flex-wrap justify-center gap-1.5 mt-2">
+                                      {[
+                                        { label: 'Structured Cabling', color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' },
+                                        { label: 'CCTV', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
+                                        { label: 'Access Control', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+                                        { label: 'AV', color: 'bg-pink-500/20 text-pink-400 border-pink-500/30' },
+                                        { label: 'Intrusion', color: 'bg-slate-500/20 text-slate-400 border-slate-500/30' },
+                                        { label: 'Fire Alarm', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
+                                      ].map(sys => (
+                                        <span key={sys.label} className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded border ${sys.color}`}>{sys.label}</span>
+                                      ))}
+                                    </div>
                                   </div>
                                   <input
                                     type="file"
@@ -1855,58 +1941,111 @@ If you truly cannot find ANY materials in the document, return an empty array: [
                                 // Loading state
                                 <div className="flex flex-col items-center gap-3 py-8">
                                   <div className="w-10 h-10 border-3 border-violet-500/30 border-t-violet-400 rounded-full animate-spin" />
-                                  <div className="text-sm text-violet-400 font-bold">Extracting materials with AI...</div>
-                                  <div className="text-[10px] opacity-50">Analyzing document for materials, quantities, and labor hours</div>
+                                  <div className="text-sm text-violet-400 font-bold">AI Takeoff Analysis in Progress...</div>
+                                  <div className="text-[10px] opacity-50">Scanning for devices across all 6 LV systems — Structured Cabling, CCTV, Access Control, AV, Intrusion, Fire Alarm</div>
                                 </div>
-                              ) : (
-                                // Preview extracted materials
-                                <div className="space-y-3">
-                                  <div className="flex items-center justify-between">
-                                    <div className="text-sm font-bold text-violet-400">{proposalMaterials.filter(m => m.selected).length} of {proposalMaterials.length} materials selected</div>
-                                    <div className="flex items-center gap-3">
-                                      <button type="button" onClick={() => setProposalMaterials(prev => prev.map(m => ({ ...m, selected: true })))} className="text-[9px] uppercase tracking-wider text-violet-400 hover:text-violet-300">Select All</button>
-                                      <button type="button" onClick={() => setProposalMaterials(prev => prev.map(m => ({ ...m, selected: false })))} className="text-[9px] uppercase tracking-wider opacity-50 hover:opacity-80">None</button>
-                                    </div>
-                                  </div>
+                              ) : (() => {
+                                // System color mapping for grouped preview
+                                const systemColors: Record<string, { bg: string; border: string; text: string; badge: string }> = {
+                                  'STRUCTURED CABLING': { bg: 'bg-cyan-500/5', border: 'border-cyan-500/20', text: 'text-cyan-400', badge: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' },
+                                  'CCTV': { bg: 'bg-amber-500/5', border: 'border-amber-500/20', text: 'text-amber-400', badge: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
+                                  'ACCESS CONTROL': { bg: 'bg-emerald-500/5', border: 'border-emerald-500/20', text: 'text-emerald-400', badge: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+                                  'AV': { bg: 'bg-pink-500/5', border: 'border-pink-500/20', text: 'text-pink-400', badge: 'bg-pink-500/20 text-pink-400 border-pink-500/30' },
+                                  'INTRUSION': { bg: 'bg-slate-500/5', border: 'border-slate-500/20', text: 'text-slate-400', badge: 'bg-slate-500/20 text-slate-400 border-slate-500/30' },
+                                  'FIRE ALARM': { bg: 'bg-red-500/5', border: 'border-red-500/20', text: 'text-red-400', badge: 'bg-red-500/20 text-red-400 border-red-500/30' },
+                                  'INFRASTRUCTURE': { bg: 'bg-violet-500/5', border: 'border-violet-500/20', text: 'text-violet-400', badge: 'bg-violet-500/20 text-violet-400 border-violet-500/30' },
+                                  'GENERAL': { bg: 'bg-white/5', border: 'border-white/10', text: 'text-white/70', badge: 'bg-white/10 text-white/70 border-white/20' },
+                                };
+                                // Group materials by system
+                                const systemOrder = ['STRUCTURED CABLING', 'CCTV', 'ACCESS CONTROL', 'AV', 'INTRUSION', 'FIRE ALARM', 'INFRASTRUCTURE', 'GENERAL'];
+                                const grouped = systemOrder.reduce((acc, sys) => {
+                                  const items = proposalMaterials.map((m, idx) => ({ ...m, _idx: idx })).filter(m => m.system === sys);
+                                  if (items.length > 0) acc.push({ system: sys, items });
+                                  return acc;
+                                }, [] as { system: string; items: (typeof proposalMaterials[0] & { _idx: number })[] }[]);
+                                // Catch any unknown systems
+                                const knownSystems = new Set(systemOrder);
+                                const unknownItems = proposalMaterials.map((m, idx) => ({ ...m, _idx: idx })).filter(m => !knownSystems.has(m.system));
+                                if (unknownItems.length > 0) grouped.push({ system: 'GENERAL', items: unknownItems });
 
-                                  <div className="max-h-64 overflow-y-auto space-y-1 rounded-lg">
-                                    <div className={`grid ${showPricing ? 'grid-cols-[auto_2fr_0.7fr_0.7fr_0.7fr]' : 'grid-cols-[auto_2fr_0.7fr_0.7fr]'} gap-2 px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest opacity-50 sticky top-0 bg-dashboard-bg`}>
-                                      <div></div>
-                                      <div>Material</div>
-                                      <div className="text-center">Qty</div>
-                                      <div className="text-center">Hrs/Unit</div>
-                                      {showPricing && <div className="text-center">Cost/Unit</div>}
-                                    </div>
-                                    {proposalMaterials.map((mat, idx) => (
-                                      <div key={idx} className={cn(`grid ${showPricing ? 'grid-cols-[auto_2fr_0.7fr_0.7fr_0.7fr]' : 'grid-cols-[auto_2fr_0.7fr_0.7fr]'} gap-2 px-3 py-2 rounded-lg items-center transition-all`, mat.selected ? "bg-violet-500/10 border border-violet-500/20" : "bg-white/5 border border-transparent opacity-50")}>
-                                        <input type="checkbox" checked={mat.selected} onChange={() => setProposalMaterials(prev => prev.map((m, i) => i === idx ? { ...m, selected: !m.selected } : m))} className="w-4 h-4 rounded accent-violet-500" />
-                                        <input type="text" value={mat.name} onChange={(e) => setProposalMaterials(prev => prev.map((m, i) => i === idx ? { ...m, name: e.target.value } : m))} className="bg-transparent border-b border-white/10 focus:border-violet-400 outline-none text-sm py-1" />
-                                        <input type="number" value={mat.quantity} onChange={(e) => setProposalMaterials(prev => prev.map((m, i) => i === idx ? { ...m, quantity: parseFloat(e.target.value) || 0 } : m))} className="bg-transparent border-b border-white/10 focus:border-violet-400 outline-none text-sm text-center py-1 w-full" min="0" step="1" />
-                                        <input type="number" value={mat.labor_hours_per_unit} onChange={(e) => setProposalMaterials(prev => prev.map((m, i) => i === idx ? { ...m, labor_hours_per_unit: parseFloat(e.target.value) || 0 } : m))} className="bg-transparent border-b border-white/10 focus:border-violet-400 outline-none text-sm text-center py-1 w-full" min="0" step="0.01" />
-                                        {showPricing && <input type="number" value={mat.unit_cost} onChange={(e) => setProposalMaterials(prev => prev.map((m, i) => i === idx ? { ...m, unit_cost: parseFloat(e.target.value) || 0 } : m))} className="bg-transparent border-b border-white/10 focus:border-violet-400 outline-none text-sm text-center py-1 w-full" min="0" step="0.01" />}
+                                const totalLabor = proposalMaterials.filter(m => m.selected).reduce((s, m) => s + (m.quantity * m.labor_hours_per_unit), 0);
+                                const totalItems = proposalMaterials.filter(m => m.selected).reduce((s, m) => s + m.quantity, 0);
+
+                                return (
+                                  // Preview extracted materials — grouped by system
+                                  <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                      <div className="text-sm font-bold text-violet-400">{proposalMaterials.filter(m => m.selected).length} of {proposalMaterials.length} materials selected</div>
+                                      <div className="flex items-center gap-3">
+                                        <button type="button" onClick={() => setProposalMaterials(prev => prev.map(m => ({ ...m, selected: true })))} className="text-[9px] uppercase tracking-wider text-violet-400 hover:text-violet-300">Select All</button>
+                                        <button type="button" onClick={() => setProposalMaterials(prev => prev.map(m => ({ ...m, selected: false })))} className="text-[9px] uppercase tracking-wider opacity-50 hover:opacity-80">None</button>
                                       </div>
-                                    ))}
-                                  </div>
+                                    </div>
 
-                                  {/* Import as add-on toggle + import buttons */}
-                                  <div className="flex items-center justify-between pt-2 border-t border-white/10">
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                      <input type="checkbox" checked={proposalAsAddon} onChange={() => setProposalAsAddon(!proposalAsAddon)} className="w-4 h-4 rounded accent-amber-500" />
-                                      <span className={cn("text-xs font-bold uppercase tracking-wider", proposalAsAddon ? "text-amber-400" : "opacity-60")}>
-                                        {proposalAsAddon ? 'Import as Add-On / Change Order' : 'Import as Original Material'}
-                                      </span>
-                                    </label>
-                                    <div className="flex items-center gap-2">
-                                      <button type="button" onClick={() => { setProposalMaterials([]); setProposalError(''); }} className="px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition-all">
-                                        Cancel
-                                      </button>
-                                      <button type="button" onClick={handleProposalImport} disabled={proposalMaterials.filter(m => m.selected).length === 0 || proposalLoading} className="px-5 py-2 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-bold rounded-lg text-xs uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30 flex items-center gap-2">
-                                        <Download size={12} /> Import {proposalMaterials.filter(m => m.selected).length} Materials
-                                      </button>
+                                    {/* Totals summary bar */}
+                                    <div className="grid grid-cols-3 gap-2 text-xs">
+                                      <div className="bg-violet-500/10 border border-violet-500/20 rounded-lg p-2 text-center">
+                                        <div className="text-[9px] uppercase opacity-50">Systems</div>
+                                        <div className="font-bold text-violet-400">{grouped.length}</div>
+                                      </div>
+                                      <div className="bg-violet-500/10 border border-violet-500/20 rounded-lg p-2 text-center">
+                                        <div className="text-[9px] uppercase opacity-50">Total Qty</div>
+                                        <div className="font-bold text-violet-400">{totalItems.toLocaleString()}</div>
+                                      </div>
+                                      <div className="bg-violet-500/10 border border-violet-500/20 rounded-lg p-2 text-center">
+                                        <div className="text-[9px] uppercase opacity-50">Est. Labor</div>
+                                        <div className="font-bold text-violet-400">{totalLabor.toLocaleString(undefined, { maximumFractionDigits: 1 })}h</div>
+                                      </div>
+                                    </div>
+
+                                    <div className="max-h-[400px] overflow-y-auto space-y-3 rounded-lg">
+                                      {grouped.map(group => {
+                                        const colors = systemColors[group.system] || systemColors['GENERAL'];
+                                        const groupLabor = group.items.filter(m => m.selected).reduce((s, m) => s + (m.quantity * m.labor_hours_per_unit), 0);
+                                        return (
+                                          <div key={group.system} className={`rounded-xl border ${colors.border} overflow-hidden`}>
+                                            <div className={`${colors.bg} px-3 py-2 flex items-center justify-between`}>
+                                              <div className="flex items-center gap-2">
+                                                <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded border ${colors.badge}`}>{group.system}</span>
+                                                <span className="text-[10px] opacity-50">{group.items.length} item{group.items.length !== 1 ? 's' : ''}</span>
+                                              </div>
+                                              <span className={`text-[10px] font-bold ${colors.text}`}>{groupLabor.toLocaleString(undefined, { maximumFractionDigits: 1 })}h labor</span>
+                                            </div>
+                                            <div className="divide-y divide-white/5">
+                                              {group.items.map(mat => (
+                                                <div key={mat._idx} className={cn("grid grid-cols-[auto_2fr_0.6fr_0.6fr] gap-2 px-3 py-1.5 items-center transition-all", mat.selected ? "" : "opacity-40")}>
+                                                  <input type="checkbox" checked={mat.selected} onChange={() => setProposalMaterials(prev => prev.map((m, i) => i === mat._idx ? { ...m, selected: !m.selected } : m))} className="w-3.5 h-3.5 rounded accent-violet-500" />
+                                                  <input type="text" value={mat.name} onChange={(e) => setProposalMaterials(prev => prev.map((m, i) => i === mat._idx ? { ...m, name: e.target.value } : m))} className="bg-transparent border-b border-white/10 focus:border-violet-400 outline-none text-xs py-0.5" />
+                                                  <input type="number" value={mat.quantity} onChange={(e) => setProposalMaterials(prev => prev.map((m, i) => i === mat._idx ? { ...m, quantity: parseFloat(e.target.value) || 0 } : m))} className="bg-transparent border-b border-white/10 focus:border-violet-400 outline-none text-xs text-center py-0.5 w-full" min="0" step="1" />
+                                                  <input type="number" value={mat.labor_hours_per_unit} onChange={(e) => setProposalMaterials(prev => prev.map((m, i) => i === mat._idx ? { ...m, labor_hours_per_unit: parseFloat(e.target.value) || 0 } : m))} className="bg-transparent border-b border-white/10 focus:border-violet-400 outline-none text-xs text-center py-0.5 w-full" min="0" step="0.01" />
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+
+                                    {/* Import as add-on toggle + import buttons */}
+                                    <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                                      <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" checked={proposalAsAddon} onChange={() => setProposalAsAddon(!proposalAsAddon)} className="w-4 h-4 rounded accent-amber-500" />
+                                        <span className={cn("text-xs font-bold uppercase tracking-wider", proposalAsAddon ? "text-amber-400" : "opacity-60")}>
+                                          {proposalAsAddon ? 'Import as Add-On / Change Order' : 'Import as Original Material'}
+                                        </span>
+                                      </label>
+                                      <div className="flex items-center gap-2">
+                                        <button type="button" onClick={() => { setProposalMaterials([]); setProposalError(''); }} className="px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition-all">
+                                          Cancel
+                                        </button>
+                                        <button type="button" onClick={handleProposalImport} disabled={proposalMaterials.filter(m => m.selected).length === 0 || proposalLoading} className="px-5 py-2 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-bold rounded-lg text-xs uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30 flex items-center gap-2">
+                                          <Download size={12} /> Import {proposalMaterials.filter(m => m.selected).length} Materials
+                                        </button>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              )}
+                                );
+                              })()}
 
                               {proposalError && (
                                 <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-sm text-red-400 flex items-center gap-2">
